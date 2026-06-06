@@ -374,6 +374,39 @@ export class BackendStack extends cdk.NestedStack {
       })
     )
 
+    // Tavily Search API key secret.
+    // Created here as an empty placeholder so the value can be pasted in manually
+    // (via Console/CLI) after deployment. We intentionally do NOT pass
+    // secretStringValue: doing so would overwrite the manually entered key on every
+    // `cdk deploy`. CDK generates a random placeholder value on first create; the
+    // agent reads the real value at runtime via Secrets Manager.
+    const tavilyApiKeySecret = new secretsmanager.Secret(this, "TavilyApiKeySecret", {
+      secretName: `/${config.stack_name_base}/tavily-api-key`,
+      description:
+        "Tavily Search API key for the NCAA D1 blog agent. Paste the key value manually after deploy.",
+    })
+
+    // Allow the AgentCore Runtime role to read the Tavily API key at runtime.
+    // The trailing "*" accounts for the random 6-character suffix that Secrets
+    // Manager appends to the secret ARN.
+    agentRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: "TavilyApiKeySecretAccess",
+        effect: iam.Effect.ALLOW,
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: [
+          `arn:aws:secretsmanager:${this.region}:${this.account}:secret:/${config.stack_name_base}/tavily-api-key*`,
+        ],
+      })
+    )
+
+    // Surface the secret name to the agent so the tool code (added in a later step)
+    // can resolve and read the key from Secrets Manager.
+    new cdk.CfnOutput(this, "TavilyApiKeySecretName", {
+      value: tavilyApiKeySecret.secretName,
+      description: "Secrets Manager secret name to paste the Tavily API key into",
+    })
+
     // Environment variables for the runtime
     const envVars: { [key: string]: string } = {
       AWS_REGION: stack.region,
@@ -381,6 +414,9 @@ export class BackendStack extends cdk.NestedStack {
       MEMORY_ID: memoryId,
       STACK_NAME: config.stack_name_base,
       GATEWAY_CREDENTIAL_PROVIDER_NAME: `${config.stack_name_base}-runtime-gateway-auth`, // Used by @requires_access_token decorator to look up the correct provider
+      // Secrets Manager secret name holding the Tavily Search API key. The agent
+      // tool code reads the key value from this secret at runtime.
+      TAVILY_API_KEY_SECRET_NAME: `/${config.stack_name_base}/tavily-api-key`,
       // Controls whether the agent activates long-term semantic memory retrieval.
       // The memory resource always includes the SemanticMemoryStrategy (no cost to define it),
       // but retrieval is only performed when this is "true". See config.yaml: use_long_term_memory.
