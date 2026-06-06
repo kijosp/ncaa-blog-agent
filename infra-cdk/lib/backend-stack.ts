@@ -963,11 +963,21 @@ export class BackendStack extends cdk.NestedStack {
     // Grant Lambda permissions to update the Gateway (attach/detach policy engine)
     // and read Gateway configuration for the update_gateway call.
     // iam:PassRole is required because update_gateway re-associates the Gateway's IAM role.
+    //
+    // ListGatewayTargets / GetGatewayTarget are REQUIRED for Cedar policy creation:
+    // when AgentCore validates a Cedar policy it enumerates the Gateway's targets
+    // (the MCP tool manifest) to build the schema of valid Action names. Without
+    // these permissions, create_policy validation fails and the policy lands in
+    // CREATE_FAILED with "Insufficient permissions to list gateway targets",
+    // which the policy_active waiter surfaces as a CloudFormation deploy failure.
+    // Both actions use the "gateway" resource type, so they scope to the Gateway ARN.
     cedarPolicyLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
           "bedrock-agentcore:UpdateGateway",
           "bedrock-agentcore:GetGateway",
+          "bedrock-agentcore:ListGatewayTargets",
+          "bedrock-agentcore:GetGatewayTarget",
           "bedrock-agentcore:ManageResourceScopedPolicy",
         ],
         resources: [gateway.attrGatewayArn],
