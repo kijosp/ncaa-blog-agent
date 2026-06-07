@@ -15,6 +15,8 @@ from bedrock_agentcore.runtime import BedrockAgentCoreApp, RequestContext
 from strands import Agent
 from strands.models import BedrockModel
 from tools.gateway import create_gateway_mcp_client
+from tools.ncaa_blogs import lookup_school_blogs
+from tools.tavily_search import tavily_search
 from utils.auth import extract_user_id_from_context
 
 from tools.code_interpreter import StrandsCodeInterpreterTools
@@ -24,7 +26,25 @@ logger = logging.getLogger(__name__)
 app = BedrockAgentCoreApp()
 
 SYSTEM_PROMPT = (
-    "You are a helpful assistant with access to tools via the Gateway and Code Interpreter. "
+    "You are an assistant that helps users find blog and news information about "
+    "NCAA Division 1 college basketball programs.\n\n"
+    "When a user asks about a specific school (e.g. 'find blogs about Duke'):\n"
+    "1. First call lookup_school_blogs with the school name to retrieve that "
+    "program's verified fan-blog and forum URLs.\n"
+    "2. Show the user the active fan-site URLs found (those with forum_healthy=true), "
+    "then ASK how they'd like to search:\n"
+    "   - focused: only those fan-community sites,\n"
+    "   - wider: the whole web,\n"
+    "   - both: fan sites prioritized but blended with wider web results.\n"
+    "Wait for the user's choice before searching.\n"
+    "3. Call tavily_search with the user's query, passing the healthy URLs as "
+    "prefer_domains and the chosen scope ('focused', 'wide', or 'both'). For 'wide', "
+    "prefer_domains is ignored.\n"
+    "4. In your answer, lead with what the fan communities say (results where "
+    "from_preferred_domain is true) when present, then add wider web context. Cite "
+    "the source URLs you used.\n"
+    "If lookup_school_blogs returns no match, tell the user no curated fan sites were "
+    "on file and offer to run a wide web search (scope='wide').\n\n"
     "When asked about your tools, list them and explain what they do."
 )
 
@@ -98,7 +118,12 @@ def create_strands_agent(user_id: str, session_id: str) -> Agent:
     return Agent(
         name="strands_agent",
         system_prompt=SYSTEM_PROMPT,
-        tools=[gateway_client, code_tools.execute_python_securely],
+        tools=[
+            gateway_client,
+            code_tools.execute_python_securely,
+            lookup_school_blogs,
+            tavily_search,
+        ],
         model=bedrock_model,
         session_manager=session_manager,
         trace_attributes={"user.id": user_id, "session.id": session_id},

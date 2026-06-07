@@ -31,3 +31,8 @@ frontend/public/aws-exports.json
 scripts/zip-artifact/
 public/
 .mkdocs/public/
+
+# Confidential data and demo-specific assets — do not push to public repo
+data/
+scripts/images/
+PLAN_*.md
