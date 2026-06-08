@@ -281,8 +281,16 @@ export default function ChatInterface() {
 
           {/* Centered welcome message */}
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">Welcome to FAST Chat</h2>
-            <p className="text-gray-600 mt-2">Ask me anything to get started</p>
+            {/* NCAA logo */}
+            <div className="flex items-center justify-center mb-4">
+              <img
+                src="/NCAA_logo.png"
+                alt="NCAA"
+                className="h-12 object-contain"
+              />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">NCAA D1 Blog Chat Assistant</h2>
+            <p className="text-gray-600 mt-2">Ask about any NCAA Division I school to find blogs and news</p>
           </div>
 
           {/* Centered input */}
