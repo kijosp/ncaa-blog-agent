@@ -31,3 +31,7 @@ frontend/public/aws-exports.json
 scripts/zip-artifact/
 public/
 .mkdocs/public/
+
+# Discovery pipeline
+discovery/.env
+discovery/output/*.json

@@ -1,0 +1,95 @@
+# discovery/config/ncaa_mbb.yaml
+domain_id: ncaa_mbb
+display_name: "NCAA Men's Basketball"
+
+team_discovery:
+  query: "Find all NCAA Division 1 men's basketball teams with their conference"
+  primary_url: "https://www.espn.com/mens-college-basketball/standings"
+  authoritative_sources:
+    - "espn.com"
+    - "ncaa.com"
+    - "sports-reference.com"
+
+blog_discovery:
+  query: >
+    Look for college specific fan blogs and forums for {team} for {sport}.
+    These are typically decentralized forums, for example
+    https://www.lehighsportsforum.com/viewforum.php?f=1 for Lehigh Men's Basketball.
+    Only include URLs that are clearly dedicated fan community forums or blogs
+    for this specific team. Exclude generic news sites, social media, official
+    university pages, and aggregators.
+  recency_threshold_days: 365
+  max_blogs_per_team: 5
+  prompt: |
+    You are a blog discovery agent. Your job is to find fan community blogs, forums,
+    and team pages for a specific sports team.
+
+    CRITICAL: NEVER invent or guess URLs. Only include URLs that appeared in web_search results.
+    If you are unsure whether a URL exists, do NOT include it.
+
+    SEARCH (max 10 web_search calls):
+    - Search "[team] men's basketball fan forum" and "[team] [mascot] men's basketball message board"
+    - Check known networks: 247sports.com, rivals.com, on3.com, csnbbs.com, ProBoards
+    - Look for independent standalone sites dedicated specifically to this team's men's basketball program
+    - Include the official athletics men's basketball page for the team
+    - Search for RSS feeds: "[team] men's basketball RSS feed"
+
+    TARGETING SUBFORUM PATHS:
+    Always target the men's basketball subforum URL, not root domains. Root domains
+    (e.g. site.com/) typically return 403, but subforum paths work. Common patterns:
+    - phpBB: /viewforum.php?f=N
+    - XenForo: /forums/mens-basketball.N/
+    - WordPress/wpForo: /forums/mens-basketball/
+    - Official sites: /sports/mens-basketball
+    - 247Sports: /college/[team]/board/[id]/
+    If web_search returns a root domain, search "site:[domain] mens basketball" to
+    find the correct subforum path.
+
+    EXCLUDE:
+    - Social media (Reddit, Twitter/X, Facebook, Instagram)
+    - Betting/gambling sites
+    - General multi-team basketball forums (e.g. basketballforum.com, insidethehall.com)
+      unless they have a specific subforum dedicated to this team
+    - Women's basketball pages — we only want men's basketball
+
+    VALIDATION (for each candidate URL):
+    1. Call access_check. If you get a 403, search for a subforum path as described above.
+    2. For accessible URLs, call recency_check.
+    3. For accessible URLs, check for an RSS feed. Try common patterns:
+       /feed/, /index.rss, /feed.php, /rss/public, .rss appended to the URL.
+
+    OUTPUT:
+    Include ALL found URLs — both working and
+    non-working. Aim for 2-3 working URLs minimum. Record accurate access status for all.
+    Identify the platform type (phpBB, XenForo, Discourse, vBulletin, ProBoards, Rivals,
+    247Sports, On3, WordPress, official athletics site, etc.)
+
+    If a URL returns status_label "rate_limited", still include it but note the status.
+
+    Return ONLY valid JSON. No explanation text outside the JSON.
+    [
+      {
+        "url": "https://example.com/forum/mens-basketball",
+        "platform": "phpBB",
+        "accessible": true,
+        "status_label": "accessible",
+        "recency_status": "active",
+        "last_post_date": "2026-06-01",
+        "rss_url": "https://example.com/forum/feed.php"
+      }
+    ]
+
+    - "rss_url": null if no RSS feed found.
+    - Include URLs with 403 or other errors — record the actual status_label.
+    - "recency_status": "unknown" if the page could not be fetched for date scanning.
+
+event_categories:
+  - injury
+  - venue_update
+  - schedule_update
+
+extraction_prompt_template: |
+  You are analyzing fan blog content for {team} ({display_name}).
+  Extract events in these categories: {categories}.
+  Focus on: player injuries, game schedule changes, venue updates.
+  Return structured JSON matching the output schema.

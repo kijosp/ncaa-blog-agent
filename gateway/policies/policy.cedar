@@ -40,7 +40,10 @@
 
 permit(
   principal is AgentCore::OAuthUser,
-  action == AgentCore::Action::"sample-tool-target___text_analysis_tool",
+  action in [
+    AgentCore::Action::"sample-tool-target___text_analysis_tool",
+    AgentCore::Action::"web-search-tool___WebSearch"
+  ],
   resource == AgentCore::Gateway::"{{GATEWAY_ARN}}"
 )
 when {
