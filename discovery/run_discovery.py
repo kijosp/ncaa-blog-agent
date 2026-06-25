@@ -9,7 +9,7 @@ Flow:
   5. Save updated registry as JSON
 
 Usage:
-    export AWS_PROFILE=fanduel
+    export AWS_PROFILE=FD
     export AWS_DEFAULT_REGION=us-east-1
     export GATEWAY_URL=<your-gateway-url>
     export GATEWAY_TOKEN=<your-m2m-token>

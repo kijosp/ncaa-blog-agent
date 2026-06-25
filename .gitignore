@@ -35,3 +35,7 @@ public/
 # Discovery pipeline
 discovery/.env
 discovery/output/*.json
+discovery/output/*.log
+~$*
+uv.lock
+~$*
