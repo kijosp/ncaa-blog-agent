@@ -9,17 +9,16 @@ Flow:
   5. Save updated registry as JSON
 
 Usage:
-    export AWS_PROFILE=FD
-    export AWS_DEFAULT_REGION=us-east-1
-    export GATEWAY_URL=<your-gateway-url>
-    export GATEWAY_TOKEN=<your-m2m-token>
-    python discovery/run_discovery.py --config discovery/config/ncaa_mbb.yaml
+cd <rootdir>/discovery
+    To run on all teams in DEBUG mode (shows tool traces): AWS_PROFILE=FD uv run python run_discovery.py --config config/ncaa_mbb.yaml --debug 2>&1 | tee output/debug_run.log
+    To run on N teams: AWS_PROFILE=FD uv run python run_discovery.py --config config/ncaa_mbb.yaml --limit N
 """
 
 import argparse
 import json
 import logging
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -29,7 +28,7 @@ import yaml
 # Add discovery directory to path for imports.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from discovery_agent import create_blog_discovery_agent, create_team_discovery_agent
+from discovery_agent import create_blog_discovery_agent, create_team_discovery_agent, create_verifier_agent
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,33 +55,94 @@ def load_config(config_path: str) -> dict[str, Any]:
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-def load_registry(output_path: Path) -> dict[str, Any]:
-    """Load existing blog registry from JSON, or return empty dict.
+def _get_registry_table():
+    """Get DynamoDB Table resource for the blog registry."""
+    import boto3
+    table_name = os.environ.get("REGISTRY_TABLE", "blog-discovery-registry")
+    dynamodb = boto3.resource("dynamodb", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
+    return dynamodb.Table(table_name)
 
-    Args:
-        output_path: Path to the registry JSON file.
+
+def load_registry() -> dict[str, Any]:
+    """Load full blog registry from DynamoDB.
 
     Returns:
         Dict mapping team names to their blog list + metadata.
     """
-    if output_path.exists():
-        return json.loads(output_path.read_text(encoding="utf-8"))
-    return {}
+    table = _get_registry_table()
+    registry = {}
+    response = table.scan()
+    for item in response.get("Items", []):
+        registry[item["team"]] = item
+    # Handle pagination
+    while "LastEvaluatedKey" in response:
+        response = table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
+        for item in response.get("Items", []):
+            registry[item["team"]] = item
+    return registry
 
 
-def save_registry(registry: dict[str, Any], output_path: Path) -> None:
-    """Save the blog registry to JSON.
+def save_team_to_registry(team_name: str, entry: dict[str, Any]) -> None:
+    """Save a single team entry to DynamoDB.
 
     Args:
-        registry: The full registry dict to persist.
-        output_path: Path to write the JSON file.
+        team_name: Team name (partition key).
+        entry: Dict with sport, team, conference, blogs.
     """
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(registry, indent=2, default=str), encoding="utf-8")
-    logger.info("Registry saved to %s", output_path)
+    table = _get_registry_table()
+    item = {**entry, "team": team_name}
+    # Convert any None values to empty strings for DynamoDB
+    for blog in item.get("blogs", []):
+        for k, v in list(blog.items()):
+            if v is None:
+                blog[k] = ""
+    table.put_item(Item=item)
+    logger.info("Saved to DynamoDB: %s", team_name)
 
 
-def discover_teams(config: dict[str, Any]) -> list[dict[str, str]]:
+def _parse_json_array(response_text: str) -> list | None:
+    """Try multiple strategies to extract a JSON array from LLM response text.
+
+    Returns:
+        Parsed list if successful, None if all strategies fail.
+    """
+    # Strategy 1: Try parsing the entire response as JSON
+    try:
+        result = json.loads(response_text)
+        if isinstance(result, list):
+            return result
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    # Strategy 2: Strip markdown code fences
+    json_match = re.search(r"```(?:json)?\s*(\[.*?\])\s*```", response_text, re.DOTALL)
+    if json_match:
+        try:
+            result = json.loads(json_match.group(1))
+            if isinstance(result, list):
+                return result
+        except json.JSONDecodeError:
+            pass
+
+    # Strategy 3: Find the longest valid [...] substring
+    first_bracket = response_text.find("[")
+    if first_bracket != -1:
+        search_from = len(response_text)
+        while search_from > first_bracket:
+            end = response_text.rfind("]", first_bracket, search_from)
+            if end == -1:
+                break
+            try:
+                result = json.loads(response_text[first_bracket:end + 1])
+                if isinstance(result, list):
+                    return result
+            except json.JSONDecodeError:
+                search_from = end
+
+    return None
+
+
+def discover_teams(config: dict[str, Any], debug: bool = False) -> list[dict[str, str]]:
     """Run the team discovery agent to get all teams for the sport.
 
     Args:
@@ -95,7 +155,7 @@ def discover_teams(config: dict[str, Any]) -> list[dict[str, str]]:
     primary_url = config["team_discovery"].get("primary_url", "")
 
     logger.info("Discovering teams for: %s", sport)
-    agent = create_team_discovery_agent()
+    agent = create_team_discovery_agent(config=config, debug=debug)
 
     prompt = f"Find all {sport} teams by conference."
     if primary_url:
@@ -103,16 +163,26 @@ def discover_teams(config: dict[str, Any]) -> list[dict[str, str]]:
 
     result = agent(prompt)
 
-    # Parse the agent's JSON response.
     response_text = str(result)
-    # Extract JSON array from the response (agent may wrap it in markdown).
-    start = response_text.find("[")
-    end = response_text.rfind("]") + 1
-    if start == -1 or end == 0:
-        logger.error("Team discovery agent did not return valid JSON: %s", response_text[:500])
+    teams = _parse_json_array(response_text)
+
+    # Retry: use a plain LLM call to extract JSON from the raw response
+    if teams is None:
+        logger.warning("Team discovery: parse failed, using LLM to extract JSON...")
+        from strands.models import BedrockModel
+        model = BedrockModel(model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0", temperature=0.0)
+        extraction_agent = Agent(
+            model=model,
+            system_prompt="Extract the JSON array from the following text. Return ONLY the raw JSON array, nothing else.",
+            callback_handler=null_callback_handler,
+        )
+        retry_result = extraction_agent(response_text[:50000])  # Truncate to avoid token limits
+        teams = _parse_json_array(str(retry_result))
+
+    if teams is None:
+        logger.error("Team discovery: all parse attempts failed. Response: %s", response_text[:500])
         return []
 
-    teams = json.loads(response_text[start:end])
     logger.info("Discovered %d teams", len(teams))
     return teams
 
@@ -168,7 +238,7 @@ def _print_tool_trace(agent: Any, team: str) -> None:
 
 
 def discover_blogs_for_team(
-    team: str, sport: str, existing_blogs: list[dict], max_blogs: int, config: dict
+    team: str, sport: str, existing_blogs: list[dict], max_blogs: int, config: dict, debug: bool = False
 ) -> list[dict[str, Any]]:
     """Run the blog discovery agent for a single team.
 
@@ -182,7 +252,7 @@ def discover_blogs_for_team(
         List of blog dicts with url, platform, accessible, status_label,
         recency_status, last_post_date.
     """
-    agent = create_blog_discovery_agent(config=config, max_blogs=max_blogs)
+    agent = create_blog_discovery_agent(config=config, max_blogs=max_blogs, debug=debug)
 
     existing_context = ""
     if existing_blogs:
@@ -204,18 +274,80 @@ def discover_blogs_for_team(
     if logging.getLogger("tools.access_check").isEnabledFor(logging.DEBUG):
         _print_tool_trace(agent, team)
 
-    # Parse the agent's JSON response.
+    # Parse JSON array from agent response.
     response_text = str(result)
-    start = response_text.find("[")
-    end = response_text.rfind("]") + 1
-    if start == -1 or end == 0:
-        logger.warning("Blog discovery for %s did not return valid JSON: %s", team, response_text[:500])
-        return existing_blogs  # Keep existing if agent fails
+    logger.debug("Raw agent response for %s (first 500 chars): %s", team, response_text[:500])
 
-    blogs = json.loads(response_text[start:end])
+    blogs = _parse_json_array(response_text)
+
+    # Retry: use a plain LLM call to extract JSON from the raw response
+    if blogs is None:
+        logger.warning("Blog discovery for %s: parse failed, using LLM to extract JSON...", team)
+        from strands.models import BedrockModel
+        model = BedrockModel(model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0", temperature=0.0)
+        extraction_agent = Agent(
+            model=model,
+            system_prompt="Extract the JSON array from the following text. Return ONLY the raw JSON array, nothing else.",
+            callback_handler=null_callback_handler,
+        )
+        retry_result = extraction_agent(response_text[:50000])
+        blogs = _parse_json_array(str(retry_result))
+
+    if blogs is None:
+        logger.warning("Blog discovery for %s: all parse attempts failed", team)
+        return existing_blogs
     # Remove 404s — these are likely hallucinated URLs
     blogs = [b for b in blogs if "404" not in str(b.get("status_label", ""))]
     return blogs
+
+
+def verify_blogs(team: str, blogs: list[dict], config: dict, debug: bool = False) -> list[dict]:
+    """Verify that discovered blog URLs are specifically for US Men's College Basketball.
+
+    Args:
+        team: Team name.
+        blogs: List of blog dicts from discovery.
+        config: Domain config dict.
+        debug: If True, stream agent output.
+
+    Returns:
+        Filtered list keeping only URLs that pass verification.
+    """
+    if not blogs:
+        return blogs
+
+    agent = create_verifier_agent(config=config, debug=debug)
+    urls = [b.get("url", "") for b in blogs]
+    prompt = (
+        f"Verify these URLs for {team} (US Men's College Basketball). "
+        f"For each URL, determine if it is specifically for this team's men's college basketball program.\n"
+        f"URLs to verify: {json.dumps(urls)}"
+    )
+
+    logger.info("Verifying %d URLs for: %s", len(urls), team)
+    result = agent(prompt)
+
+    # Parse the verdict JSON
+    response_text = str(result)
+    end = response_text.rfind("]") + 1
+    start = response_text.rfind("[", 0, end)
+    if start == -1 or end == 0:
+        logger.warning("Verifier for %s did not return valid JSON, keeping all URLs", team)
+        return blogs
+
+    try:
+        verdicts = json.loads(response_text[start:end])
+    except json.JSONDecodeError as e:
+        logger.warning("Verifier for %s: JSON parse error: %s, keeping all URLs", team, e)
+        return blogs
+
+    # Build set of URLs that passed
+    passed_urls = {v.get("url") for v in verdicts if v.get("verdict") == "PASS"}
+    failed = [v for v in verdicts if v.get("verdict") == "FAIL"]
+    for f in failed:
+        logger.info("  REJECTED: %s — %s", f.get("url"), f.get("reason"))
+
+    return [b for b in blogs if b.get("url") in passed_urls]
 
 
 def _registry_to_excel(registry: dict[str, Any], output_path: Path) -> None:
@@ -263,7 +395,8 @@ def _registry_to_excel(registry: dict[str, Any], output_path: Path) -> None:
         max_len = max(len(str(cell.value or "")) for cell in col)
         ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 60)
 
-    excel_path = output_path.with_suffix(".xlsx")
+    excel_path = output_path
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(excel_path)
     logger.info("Excel saved to %s", excel_path)
 
@@ -281,6 +414,7 @@ def _print_summary(registry: dict[str, Any]) -> None:
         return
 
     with_accessible = 0
+    with_accessible_and_active = 0
     without_accessible = 0
     error_counter: Counter = Counter()
 
@@ -288,6 +422,8 @@ def _print_summary(registry: dict[str, Any]) -> None:
         blogs = entry.get("blogs", [])
         if any(b.get("accessible") for b in blogs):
             with_accessible += 1
+            if any(b.get("accessible") and b.get("recency_status") == "active" for b in blogs):
+                with_accessible_and_active += 1
         else:
             without_accessible += 1
             for b in blogs:
@@ -300,6 +436,7 @@ def _print_summary(registry: dict[str, Any]) -> None:
     print(f"{'='*50}")
     print(f"  Total teams:                  {total}")
     print(f"  With ≥1 accessible URL:       {with_accessible} ({with_accessible*100//total}%)")
+    print(f"  With ≥1 accessible + active:  {with_accessible_and_active} ({with_accessible_and_active*100//total}%)")
     print(f"  With NO accessible URL:       {without_accessible} ({without_accessible*100//total}%)")
 
     if error_counter:
@@ -323,6 +460,12 @@ def main() -> None:
         type=int,
         default=0,
         help="Limit number of teams to process (0 = all). Useful for testing.",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Number of parallel workers for blog discovery (default: 1, sequential).",
     )
     parser.add_argument(
         "--debug",
@@ -353,37 +496,77 @@ def main() -> None:
     sport = config["display_name"]
     max_blogs = config["blog_discovery"].get("max_blogs_per_team", 5)
 
-    output_path = Path(__file__).resolve().parent / "output" / f"{domain_id}_registry.json"
-    registry = load_registry(output_path)
+    registry = load_registry()
 
     # Step 1: Discover teams
-    teams = discover_teams(config)
+    teams = discover_teams(config, debug=args.debug)
     if args.limit > 0:
         teams = teams[: args.limit]
         logger.info("Limited to %d teams for testing", args.limit)
 
     # Step 2: Per team, discover/validate blogs
-    for i, team_info in enumerate(teams, 1):
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def process_team(team_info: dict, index: int) -> None:
         team_name = team_info["team"]
         conference = team_info.get("conference", "Unknown")
-        logger.info("[%d/%d] Processing: %s (%s)", i, len(teams), team_name, conference)
+        logger.info("[%d/%d] Processing: %s (%s)", index, len(teams), team_name, conference)
 
         existing_blogs = registry.get(team_name, {}).get("blogs", [])
-        blogs = discover_blogs_for_team(team_name, sport, existing_blogs, max_blogs, config)
+        existing_urls = {b.get("url") for b in existing_blogs}
 
-        registry[team_name] = {
+        # Always run discovery (may find new blogs)
+        discovered = discover_blogs_for_team(team_name, sport, existing_blogs, max_blogs, config, debug=args.debug)
+
+        # Split: new URLs go through full verification, existing just get recency refresh
+        new_blogs = [b for b in discovered if b.get("url") not in existing_urls]
+        if new_blogs and config.get("verifier"):
+            new_blogs = verify_blogs(team_name, new_blogs, config, debug=args.debug)
+
+        # Refresh recency for existing blogs (already verified, skip re-verification)
+        for blog in existing_blogs:
+            if blog.get("accessible"):
+                from tools.recency_check import recency_check as _recency_check
+                result = _recency_check._tool_func(url=blog["url"])
+                blog["recency_status"] = result.get("recency_status", blog.get("recency_status"))
+                blog["last_post_date"] = result.get("last_post_date", blog.get("last_post_date"))
+
+        # Merge: existing (refreshed) + newly verified
+        blogs = existing_blogs + new_blogs
+
+        entry = {
             "sport": domain_id,
             "team": team_name,
             "conference": conference,
             "blogs": blogs,
         }
+        save_team_to_registry(team_name, entry)
 
-        # Save after each team (resume-friendly)
-        save_registry(registry, output_path)
+    workers = args.workers
+    if workers <= 1:
+        for i, team_info in enumerate(teams, 1):
+            process_team(team_info, i)
+    else:
+        logger.info("Running with %d parallel workers", workers)
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = {
+                executor.submit(process_team, team_info, i): team_info
+                for i, team_info in enumerate(teams, 1)
+            }
+            for future in as_completed(futures):
+                team_info = futures[future]
+                try:
+                    future.result()
+                except Exception as e:
+                    logger.error("Error processing %s: %s", team_info["team"], e)
 
     logger.info("Discovery complete. %d teams processed.", len(teams))
-    _registry_to_excel(registry, output_path)
-    _print_summary(registry)
+
+    # Reload full registry from DynamoDB for excel export and summary
+    final_registry = load_registry()
+    output_path = Path(__file__).resolve().parent / "output" / f"{domain_id}_registry.xlsx"
+    _registry_to_excel(final_registry, output_path)
+    _print_summary(final_registry)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,94 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Blog Discovery Pipeline" id="pipeline">
+    <mxGraphModel dx="1965" dy="1003" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;fontSize=18;" value="&lt;b&gt;Blog Discovery Pipeline&lt;/b&gt;&lt;br&gt;&lt;i&gt;NCAA Men&#39;s College Basketball — Fan Blog &amp; Forum Registry&lt;/i&gt;" vertex="1">
+          <mxGeometry height="50" width="520" x="500" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="config" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#e0f2fe;strokeColor=#0284c7;fontColor=#0c4a6e;fontSize=12;rounded=1;" value="⚙️ &lt;b&gt;Configuration&lt;/b&gt;&lt;br&gt;&lt;br&gt;Sport: NCAA MBB&lt;br&gt;Reference date&lt;br&gt;Search parameters" vertex="1">
+          <mxGeometry height="120" width="150" x="60" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="teams" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3cd;strokeColor=#d97706;fontColor=#92400e;fontSize=12;arcSize=20;" value="🔍 &lt;b&gt;Find All Teams&lt;/b&gt;&lt;br&gt;&lt;br&gt;365 NCAA Division 1&lt;br&gt;teams by conference&lt;br&gt;&lt;br&gt;&lt;i&gt;AI Agent + Web Search&lt;/i&gt;" vertex="1">
+          <mxGeometry height="140" width="180" x="280" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="exists" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f0f9ff;strokeColor=#0ea5e9;fontColor=#0369a1;fontSize=12;" value="📋 Team &amp; URLs&lt;br&gt;already in&lt;br&gt;registry?" vertex="1">
+          <mxGeometry height="120" width="160" x="530" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="recency_only" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fdf4;strokeColor=#16a34a;fontColor=#166534;fontSize=12;arcSize=20;" value="📅 &lt;b&gt;Refresh Freshness Only&lt;/b&gt;&lt;br&gt;&lt;br&gt;Re-check last post date&lt;br&gt;for known URLs&lt;br&gt;&lt;br&gt;&lt;i&gt;(Skip search &amp; verification)&lt;/i&gt;" vertex="1">
+          <mxGeometry height="120" width="200" x="530" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="discover" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3cd;strokeColor=#d97706;fontColor=#92400e;fontSize=12;arcSize=20;" value="🌐 &lt;b&gt;Discover Fan Blogs&lt;/b&gt;&lt;br&gt;&lt;br&gt;AI searches web for:&lt;br&gt;• Fan forums &amp;amp; boards&lt;br&gt;• Independent blogs&lt;br&gt;• Community sites &amp;amp; RSS&lt;br&gt;&lt;br&gt;&lt;i&gt;&lt;b&gt;AI Agent + Web Search&lt;/b&gt;&lt;/i&gt;" vertex="1">
+          <mxGeometry height="160" width="190" x="780" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="guardrail" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fee2e2;strokeColor=#dc2626;fontColor=#991b1b;fontSize=11;arcSize=10;strokeWidth=2;" value="🛡️ &lt;b&gt;GUARDRAIL&lt;/b&gt;&lt;br&gt;&lt;br&gt;Reject fake/hallucinated URLs&lt;br&gt;&lt;br&gt;Any URL returning &lt;b&gt;404&lt;/b&gt;&lt;br&gt;is immediately removed&lt;br&gt;&lt;i&gt;(AI can invent URLs that&lt;br&gt;don&#39;t actually exist)&lt;/i&gt;" vertex="1">
+          <mxGeometry height="140" width="190" x="1030" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="access" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f0fdf4;strokeColor=#16a34a;fontColor=#166534;fontSize=12;" value="🚦 &lt;b&gt;Access Check&lt;/b&gt;&lt;br&gt;&lt;br&gt;Is the site reachable?&lt;br&gt;HTTP status code" vertex="1">
+          <mxGeometry height="130" width="180" x="1030" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="recency" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f0fdf4;strokeColor=#16a34a;fontColor=#166534;fontSize=12;" value="📅 &lt;b&gt;Freshness Check&lt;/b&gt;&lt;br&gt;&lt;br&gt;Last post date?&lt;br&gt;Active in current year?" vertex="1">
+          <mxGeometry height="130" width="180" x="1030" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="verify" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3cd;strokeColor=#d97706;fontColor=#92400e;fontSize=11;arcSize=20;" value="✅ &lt;b&gt;Verify: Men&#39;s Basketball?&lt;/b&gt;&lt;br&gt;&lt;br&gt;AI reads the page and confirms:&lt;br&gt;• Is it Men&#39;s College Basketball?&lt;br&gt;• Not football, NBA, women&#39;s?&lt;br&gt;• Dedicated to this team?&lt;br&gt;&lt;br&gt;&lt;i&gt;&lt;b&gt;AI Agent (fast model)&lt;/b&gt;&lt;/i&gt;" vertex="1">
+          <mxGeometry height="160" width="210" x="1280" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="reject" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fee2e2;strokeColor=#dc2626;fontColor=#991b1b;fontSize=11;arcSize=10;dashed=1;" value="❌ &lt;b&gt;Rejected&lt;/b&gt;&lt;br&gt;&lt;br&gt;• Wrong sport (football, NBA)&lt;br&gt;• Women&#39;s basketball&lt;br&gt;• Multi-sport pages&lt;br&gt;• Generic aggregators" vertex="1">
+          <mxGeometry height="120" width="210" x="1280" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="registry" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ede9fe;strokeColor=#7c3aed;fontColor=#4c1d95;fontSize=12;rounded=1;" value="🗄️ &lt;b&gt;Blog Registry&lt;/b&gt;&lt;br&gt;&lt;i&gt;(DynamoDB)&lt;/i&gt;&lt;br&gt;&lt;br&gt;Verified blog URLs per team&lt;br&gt;with access &amp; freshness status" vertex="1">
+          <mxGeometry height="130" width="180" x="1540" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="dashboard" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#7c3aed;fontColor=#4c1d95;fontSize=11;arcSize=20;" value="📊 &lt;b&gt;Dashboard&lt;/b&gt;&lt;br&gt;&lt;br&gt;Visual web app for&lt;br&gt;traders to browse&lt;br&gt;results by team&lt;br&gt;&lt;br&gt;&lt;i&gt;🔖 Bookmark feature (coming)&lt;/i&gt;" vertex="1">
+          <mxGeometry height="130" width="180" x="1540" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="example" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9fafb;strokeColor=#6b7280;fontColor=#111827;fontSize=11;arcSize=8;align=left;spacingLeft=10;spacingRight=10;verticalAlign=top;spacingTop=8;" value="&lt;b&gt;Example Output — Duke Blue Devils&lt;/b&gt;&lt;br&gt;&lt;hr&gt;&lt;br&gt;🟢 &lt;b&gt;URL 1:&lt;/b&gt; crazytown.duke.com/basketball&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp; Accessible: ✅ Yes | Active: ✅ Yes | Last post: Jun 24, 2026&lt;br&gt;&lt;br&gt;🟡 &lt;b&gt;URL 2:&lt;/b&gt; dukehoops.proboards.com&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp; Accessible: ✅ Yes | Active: ⚠️ Outdated | Last post: Nov 12, 2024&lt;br&gt;&lt;br&gt;🔴 &lt;b&gt;URL 3:&lt;/b&gt; duke.csnbbs.com/forum-123.html&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp; Accessible: ❌ No (403 Forbidden) | Active: Unknown&lt;br&gt;&lt;br&gt;🟢 &lt;b&gt;URL 4:&lt;/b&gt; 247sports.com/college/duke/board/basketball-101/&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp; Accessible: ✅ Yes | Active: ✅ Yes | Last post: Jun 25, 2026" vertex="1">
+          <mxGeometry height="220" width="520" x="60" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="config" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#374151;" target="teams">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="teams" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#374151;" target="exists">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="exists" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#0ea5e9;fontColor=#0369a1;fontSize=11;" target="recency_only" value="&lt;b&gt;YES&lt;/b&gt;&lt;br&gt;Known URLs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="exists" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#d97706;fontColor=#92400e;fontSize=11;" target="discover" value="New team / New URLs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="discover" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#374151;" target="guardrail">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="guardrail" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#374151;fontSize=10;" target="access" value="Real URLs only">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="access" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#374151;" target="recency">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="recency" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#374151;" target="verify">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="verify" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#16a34a;fontColor=#16a34a;fontSize=11;" target="registry" value="✅ PASS">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="verify" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#dc2626;fontColor=#dc2626;fontSize=11;" target="reject" value="❌ FAIL">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="recency_only" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#16a34a;fontColor=#166534;fontSize=10;" target="registry" value="Updated freshness">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="630" y="620" />
+              <mxPoint x="1510" y="620" />
+              <mxPoint x="1510" y="395" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e12" edge="1" parent="1" source="registry" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#7c3aed;" target="dashboard">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

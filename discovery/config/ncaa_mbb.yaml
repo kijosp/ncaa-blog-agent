@@ -2,6 +2,10 @@
 domain_id: ncaa_mbb
 display_name: "NCAA Men's Basketball"
 
+# Reference date for filtering. Set to a specific date for testing, or null to use today's date.
+# Format: YYYY-MM-DD. URLs with years older than this year will be skipped.
+reference_date: null
+
 team_discovery:
   query: "Find all NCAA Division 1 men's basketball teams with their conference"
   primary_url: "https://www.espn.com/mens-college-basketball/standings"
@@ -9,6 +13,21 @@ team_discovery:
     - "espn.com"
     - "ncaa.com"
     - "sports-reference.com"
+  prompt: |
+    You are a sports research assistant. Your job is to find all teams
+    for a given sport and league.
+
+    Follow this order:
+    1. First, use http_fetch on the primary URL provided in the user's message.
+    2. If http_fetch fails or returns no usable content, use web_search to find a working
+       ESPN page (e.g. search "men's basketball NCAA division 1 teams list ESPN"), then http_fetch that.
+    3. If ESPN still fails, fall back to Wikipedia (search for "List of NCAA Division I men's basketball programs").
+    4. Extract all team names and their conferences from the page content.
+    5. Return a JSON array of objects with "team" and "conference" fields.
+
+    Return ONLY a single valid JSON array. No preamble, no explanation, no markdown fences,
+    no text before or after the JSON. Your entire response must be parseable by json.loads().
+    Format: [{"team": "Duke", "conference": "ACC"}, ...]
 
 blog_discovery:
   query: >
@@ -27,12 +46,23 @@ blog_discovery:
     CRITICAL: NEVER invent or guess URLs. Only include URLs that appeared in web_search results.
     If you are unsure whether a URL exists, do NOT include it.
 
-    SEARCH (max 10 web_search calls):
-    - Search "[team] men's basketball fan forum" and "[team] [mascot] men's basketball message board"
-    - Check known networks: 247sports.com, rivals.com, on3.com, csnbbs.com, ProBoards
-    - Look for independent standalone sites dedicated specifically to this team's men's basketball program
-    - Include the official athletics men's basketball page for the team
-    - Search for RSS feeds: "[team] men's basketball RSS feed"
+    TODAY'S DATE: {reference_date}
+
+    SEARCH (max 5 web_search calls, use count=10 for each call):
+    - Search "[team] fan blogs and forums US Men College basketball"
+    - Search "[team] men's basketball fan forum message board blogspot wordpress"
+    - Search "[team] basketball 247sports.com OR rivals.com OR on3.com OR csnbbs.com forum"
+    - Search "[team] men's basketball RSS feed"
+    - (Optional) If results are sparse, try "[team mascot] basketball blog"
+
+    DATE FILTERING:
+    - Skip any URL that contains a year older than {reference_year} in its path
+      (e.g. /news/2019/, /2021/11/, /archive/2020). These are stale article links, not active blogs.
+    - Only include URLs that point to a blog/forum homepage or current-year content.
+
+    EXAMPLE: For Vermont Catamounts, a good result is https://thenamesvermont.blogspot.com/ —
+    a dedicated fan blog covering recruiting, roster moves, and game analysis. These small
+    independent blogs are exactly what we want to find.
 
     TARGETING SUBFORUM PATHS:
     Always target the men's basketball subforum URL, not root domains. Root domains
@@ -54,7 +84,8 @@ blog_discovery:
 
     VALIDATION (for each candidate URL):
     1. Call access_check. If you get a 403, search for a subforum path as described above.
-    2. For accessible URLs, call recency_check.
+    2. ONLY if access_check returns accessible (status 200-399), call recency_check.
+       Do NOT call recency_check on URLs that returned 403, 404, or any other error.
     3. For accessible URLs, check for an RSS feed. Try common patterns:
        /feed/, /index.rss, /feed.php, /rss/public, .rss appended to the URL.
 
@@ -66,7 +97,8 @@ blog_discovery:
 
     If a URL returns status_label "rate_limited", still include it but note the status.
 
-    Return ONLY valid JSON. No explanation text outside the JSON.
+    Return ONLY a single valid JSON array. No preamble, no explanation, no markdown fences,
+    no text before or after the JSON. Your entire response must be parseable by json.loads().
     [
       {
         "url": "https://example.com/forum/mens-basketball",
@@ -82,6 +114,40 @@ blog_discovery:
     - "rss_url": null if no RSS feed found.
     - Include URLs with 403 or other errors — record the actual status_label.
     - "recency_status": "unknown" if the page could not be fetched for date scanning.
+
+verifier:
+  prompt: |
+    You are a critical URL verifier for US Men's College Basketball content.
+
+    Your job: Given a URL and team name, determine if the URL is SPECIFICALLY dedicated to
+    US Men's College Basketball for that team. You must REJECT URLs that are:
+    - For a different sport (football, baseball, soccer, women's basketball, etc.)
+    - For the NBA or professional basketball
+    - General multi-sport team pages that are not basketball-specific
+    - For women's basketball or other genders
+    - For high school basketball
+    - Generic news aggregators not dedicated to this team's men's basketball
+
+    PROCESS:
+    1. Use http_fetch to load the page content.
+    2. Analyze the page content, URL path, and navigation to determine the sport focus.
+    3. If the page cannot be fetched (403, 404, timeout), analyze the URL path structure
+       to make a determination. URLs containing "/mens-basketball", "/basketball/mens",
+       or similar paths are likely valid. Generic team root URLs (e.g. /college/team-name/)
+       are likely multi-sport and should be REJECTED.
+
+    DECISION CRITERIA:
+    - PASS: The page is clearly dedicated to or primarily about this team's men's college basketball
+      (fan blogs, forums with basketball subforum paths, official athletics basketball pages,
+      basketball recruiting pages for this team)
+    - FAIL: The page covers multiple sports, is for a different sport, different gender,
+      professional basketball, or is not specific enough to men's college basketball
+
+    Return ONLY a valid JSON array with one object per URL. No other text.
+    [
+      {"url": "https://example.com/forum", "verdict": "PASS", "reason": "Dedicated men's basketball fan forum"},
+      {"url": "https://example.com/team", "verdict": "FAIL", "reason": "Multi-sport team page, not basketball-specific"}
+    ]
 
 event_categories:
   - injury

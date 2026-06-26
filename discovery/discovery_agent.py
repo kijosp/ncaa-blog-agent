@@ -15,6 +15,7 @@ import requests as http_requests
 from dotenv import load_dotenv
 from mcp.client.streamable_http import streamablehttp_client
 from strands import Agent
+from strands.handlers.callback_handler import null_callback_handler
 from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
 
@@ -97,44 +98,35 @@ def _get_model() -> BedrockModel:
     Returns:
         BedrockModel configured with Claude Sonnet.
     """
-    model_id = os.environ.get("MODEL_ID", "us.anthropic.claude-sonnet-4-5-20250929-v1:0")
+    model_id = os.environ.get("MODEL_ID", "us.anthropic.claude-sonnet-4-6")
     return BedrockModel(model_id=model_id, temperature=0.1)
 
 
-_TEAM_DISCOVERY_PROMPT = """You are a sports research assistant. Your job is to find all teams
-for a given sport and league.
-
-Follow this order:
-1. First, use http_fetch on the primary URL provided in the user's message.
-2. If http_fetch fails or returns no usable content, use web_search to find a working
-   ESPN page (e.g. search "men's basketball NCAA division 1 teams list ESPN"), then http_fetch that.
-3. If ESPN still fails, fall back to Wikipedia (search for "List of NCAA Division I men's basketball programs").
-4. Extract all team names and their conferences from the page content.
-5. Return a JSON array of objects with "team" and "conference" fields.
-
-Return ONLY valid JSON. No explanation text outside the JSON.
-Format: [{"team": "Duke", "conference": "ACC"}, ...]"""
-
-
-def create_team_discovery_agent() -> Agent:
+def create_team_discovery_agent(config: dict, debug: bool = False) -> Agent:
     """Create an agent that finds all teams for a sport using web search + http_fetch.
 
     Tools: WebSearch (via Gateway MCP), http_fetch
+
+    Args:
+        config: The domain config dict (must contain team_discovery.prompt).
+        debug: If True, stream agent output to stdout.
 
     Returns:
         A Strands Agent configured for team discovery.
     """
     gateway_client = _create_gateway_mcp_client()
+    prompt = config["team_discovery"]["prompt"]
 
     return Agent(
         name="team_discovery_agent",
         model=_get_model(),
         tools=[gateway_client, http_fetch],
-        system_prompt=_TEAM_DISCOVERY_PROMPT,
+        system_prompt=prompt,
+        callback_handler=None if debug else null_callback_handler,
     )
 
 
-def create_blog_discovery_agent(config: dict, max_blogs: int = 5) -> Agent:
+def create_blog_discovery_agent(config: dict, max_blogs: int = 5, debug: bool = False) -> Agent:
     """Create an agent that finds and validates fan blogs for one team.
 
     Loads the system prompt from config["blog_discovery"]["prompt"].
@@ -144,16 +136,50 @@ def create_blog_discovery_agent(config: dict, max_blogs: int = 5) -> Agent:
     Args:
         config: The domain config dict (must contain blog_discovery.prompt).
         max_blogs: Maximum number of blogs to return per team.
+        debug: If True, stream agent output to stdout.
 
     Returns:
         A Strands Agent configured for blog discovery.
     """
     gateway_client = _create_gateway_mcp_client()
-    prompt = config["blog_discovery"]["prompt"].replace("{max_blogs}", str(max_blogs))
+    from datetime import date
+    reference_date = config.get("reference_date") or date.today().isoformat()
+    reference_year = reference_date[:4]
+    prompt = (
+        config["blog_discovery"]["prompt"]
+        .replace("{max_blogs}", str(max_blogs))
+        .replace("{reference_date}", reference_date)
+        .replace("{reference_year}", reference_year)
+    )
 
     return Agent(
         name="blog_discovery_agent",
         model=_get_model(),
         tools=[gateway_client, access_check, recency_check],
         system_prompt=prompt,
+        callback_handler=None if debug else null_callback_handler,
+    )
+
+
+def create_verifier_agent(config: dict, debug: bool = False) -> Agent:
+    """Create an agent that verifies URLs are specifically for US Men's College Basketball.
+
+    Tools: http_fetch (to inspect page content)
+
+    Args:
+        config: The domain config dict (must contain verifier.prompt).
+        debug: If True, stream agent output to stdout.
+
+    Returns:
+        A Strands Agent configured for URL verification.
+    """
+    prompt = config["verifier"]["prompt"]
+    model = BedrockModel(model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0", temperature=0.0)
+
+    return Agent(
+        name="verifier_agent",
+        model=model,
+        tools=[http_fetch],
+        system_prompt=prompt,
+        callback_handler=None if debug else null_callback_handler,
     )
