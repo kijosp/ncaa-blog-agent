@@ -1,6 +1,8 @@
 # College Fan Blogs Discovery Pipeline
 
-An AI-powered pipeline that automatically discovers fan blogs and forums for for an input sports. The sports name and discovery prompts are all configurable via a config yaml file that serves as the input for this pipeline. The pipeline has a UI to give traders transparency on what fan blogs have been discovered per team, and also allows them to add their own favorite fan blog URLs, bookmark them, and delete URLs if they find it irrelevant.
+An AI-powered pipeline that automatically discovers college-specific fan blogs and forums for a configurable input sport. The sport name, team discovery method, and blog search prompts are all defined in a config YAML file that serves as the pipeline's input. For each discovered URL, the pipeline checks accessibility and recency (when was the last post?), then stores verified results in a central registry.
+
+**For traders:** No more manually curating Excel sheets of fan blog URLs. This pipeline automatically finds and validates fan blogs across all teams. A dashboard gives traders full transparency into what's been discovered — and lets them add their own favorite sources, bookmark them, or remove irrelevant ones. This dashboard will be integrated into FanDuel's main project UI, where a downstream blog search agent uses these discovered URLs to surface injury news, roster moves, and other trading signals.
 
 ## What It Does
 
