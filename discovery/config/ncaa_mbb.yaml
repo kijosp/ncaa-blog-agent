@@ -21,84 +21,84 @@ team_discovery:
     1. First, use http_fetch on the primary URL provided in the user's message.
     2. If http_fetch fails or returns no usable content, use web_search to find a working
        ESPN page (e.g. search "men's basketball NCAA division 1 teams list ESPN"), then http_fetch that.
-    3. If ESPN still fails, fall back to Wikipedia (search for "List of NCAA Division I men's basketball programs").
-    4. Extract all team names and their conferences from the page content.
-    5. Return a JSON array of objects with "team" and "conference" fields.
+    3. Extract all team names and their conferences from the page content.
+    4. Return a JSON array of objects with "team" and "conference" fields.
+
+    IMPORTANT — TEAM NAME FORMAT:
+    Always use the FULL team name including the mascot/nickname.
+    - ✅ "Arizona Wildcats" (not "Arizona")
+    - ✅ "Arizona State Sun Devils" (not "Arizona State")
+    - ✅ "Michigan Wolverines" (not "Michigan")
+    - ✅ "Michigan State Spartans" (not "Michigan State")
+    - ✅ "Central Connecticut Blue Devils" (not "Central Connecticut" or "CCSU")
+    Many teams share prefixes (Arizona/Arizona State, Michigan/Michigan State,
+    North Carolina/North Carolina State). The mascot makes the name unambiguous.
 
     Return ONLY a single valid JSON array. No preamble, no explanation, no markdown fences,
     no text before or after the JSON. Your entire response must be parseable by json.loads().
-    Format: [{"team": "Duke", "conference": "ACC"}, ...]
+    Format: [{"team": "Duke Blue Devils", "conference": "ACC"}, ...]
 
 blog_discovery:
-  query: >
-    Look for college specific fan blogs and forums for {team} for {sport}.
-    These are typically decentralized forums, for example
-    https://www.lehighsportsforum.com/viewforum.php?f=1 for Lehigh Men's Basketball.
-    Only include URLs that are clearly dedicated fan community forums or blogs
-    for this specific team. Exclude generic news sites, social media, official
-    university pages, and aggregators.
+  query: "Find fan blogs, forums, and team news pages for {team} ({sport})."
   recency_threshold_days: 365
-  max_blogs_per_team: 5
+  max_blogs_per_team: 10
   prompt: |
-    You are a blog discovery agent. Your job is to find fan community blogs, forums,
-    and team pages for a specific sports team.
+    You are a blog discovery agent. Find fan community blogs, forums, and team news
+    pages for a specific sports team.
 
     CRITICAL: NEVER invent or guess URLs. Only include URLs that appeared in web_search results.
-    If you are unsure whether a URL exists, do NOT include it.
 
     TODAY'S DATE: {reference_date}
 
-    SEARCH (max 5 web_search calls, use count=10 for each call):
-    - Search "[team] fan blogs and forums US Men College basketball"
-    - Search "[team] men's basketball fan forum message board blogspot wordpress"
-    - Search "[team] basketball 247sports.com OR rivals.com OR on3.com OR csnbbs.com forum"
-    - Search "[team] men's basketball RSS feed"
-    - (Optional) If results are sparse, try "[team mascot] basketball blog"
+    SEARCH (max 5 web_search calls, use count=10 for each):
+    - "[team] men's basketball fan forum blog message board"
+    - "[team] basketball 247sports OR rivals OR on3 OR csnbbs OR tapatalk OR proboards OR freeforums OR boardhost"
+    - "[team abbreviation/short name] basketball forum OR fans" (e.g. "CCSU basketball forum", "UNI fans basketball")
+    - "[team] men's basketball wordpress OR substack OR blogspot OR RSS"
+    - (Optional) Use the 5th to find subforum paths or verify a specific site
 
     DATE FILTERING:
-    - Skip any URL that contains a year older than {reference_year} in its path
-      (e.g. /news/2019/, /2021/11/, /archive/2020). These are stale article links, not active blogs.
-    - Only include URLs that point to a blog/forum homepage or current-year content.
+    Skip URLs with years older than {reference_year} in the path (e.g. /news/2019/).
+    Only include blog/forum homepages or current-year content.
 
-    EXAMPLE: For Vermont Catamounts, a good result is https://thenamesvermont.blogspot.com/ —
-    a dedicated fan blog covering recruiting, roster moves, and game analysis. These small
-    independent blogs are exactly what we want to find.
+    EXAMPLES OF VALUABLE FINDS (small independent forums we prioritize):
+    - https://ccsufans.com/viewforum.php?f=1 — phpBB forum (Central Connecticut State Blue Devils)
+    - https://www.maroon-nation.com/forum/viewforum.php?f=5 — phpBB forum (Eastern Kentucky Colonel)
+    - https://crossports.freeforums.net/board/4/mens-basketball — freeforums.net (Holy Cross)
+    - https://forums.ninernation.net/c/49ers-basketball-forum/5 — Discourse forum (Charlotte 49ers)
+    - https://beardownu.com/ — (Arizona Wildcats)
+    - https://www.tapatalk.com/groups/colgatesports/basketball-f4/ — Tapatalk (Colgate)
+    - https://thenamesvermont.blogspot.com/ — Blogspot fan blog (Vermont)
 
-    TARGETING SUBFORUM PATHS:
-    Always target the men's basketball subforum URL, not root domains. Root domains
-    (e.g. site.com/) typically return 403, but subforum paths work. Common patterns:
+    SUBFORUM PATHS (target these instead of root domains which often return 403):
     - phpBB: /viewforum.php?f=N
     - XenForo: /forums/mens-basketball.N/
-    - WordPress/wpForo: /forums/mens-basketball/
-    - Official sites: /sports/mens-basketball
-    - 247Sports: /college/[team]/board/[id]/
-    If web_search returns a root domain, search "site:[domain] mens basketball" to
-    find the correct subforum path.
+    - Invision: /index.php?/forum/N-mens-basketball/
+    - Tapatalk: /groups/[name]/basketball-fN/
+    - Official sites: /sports/mens-basketball/
+    - BoardHost/ProBoards: root is usually fine
+    If search returns a root domain, search "site:[domain] mens basketball" to find the subforum.
 
     EXCLUDE:
     - Social media (Reddit, Twitter/X, Facebook, Instagram)
+    - Wikipedia
     - Betting/gambling sites
-    - General multi-team basketball forums (e.g. basketballforum.com, insidethehall.com)
-      unless they have a specific subforum dedicated to this team
-    - Women's basketball pages — we only want men's basketball
+    - Pure score/stats pages with no written content (ESPN box scores, Yahoo Sports scores)
+    - Women's basketball pages that do not have any Men's college basketball information
+
+    DO NOT EXCLUDE:
+    - Student newspapers covering men's basketball
+    - Multi-sport forums that include basketball discussion
+    - General basketball forums with a team-specific thread or subforum
 
     VALIDATION (for each candidate URL):
-    1. Call access_check. If you get a 403, search for a subforum path as described above.
-    2. ONLY if access_check returns accessible (status 200-399), call recency_check.
-       Do NOT call recency_check on URLs that returned 403, 404, or any other error.
-    3. For accessible URLs, check for an RSS feed. Try common patterns:
-       /feed/, /index.rss, /feed.php, /rss/public, .rss appended to the URL.
+    1. Call access_check. If 403, try finding a subforum path.
+    2. Only call recency_check on accessible URLs (status 200-399).
+    3. For accessible URLs, check for RSS: try /feed/, /index.rss, /rss, /rss?path=mbball.
 
-    OUTPUT:
-    Include ALL found URLs — both working and
-    non-working. Aim for 2-3 working URLs minimum. Record accurate access status for all.
-    Identify the platform type (phpBB, XenForo, Discourse, vBulletin, ProBoards, Rivals,
-    247Sports, On3, WordPress, official athletics site, etc.)
-
-    If a URL returns status_label "rate_limited", still include it but note the status.
-
-    Return ONLY a single valid JSON array. No preamble, no explanation, no markdown fences,
-    no text before or after the JSON. Your entire response must be parseable by json.loads().
+    OUTPUT FORMAT:
+    Return ONLY a valid JSON array. No preamble, no markdown fences.
+    Include ALL found URLs (working and non-working). Aim for 2-3 working minimum.
     [
       {
         "url": "https://example.com/forum/mens-basketball",
@@ -110,43 +110,32 @@ blog_discovery:
         "rss_url": "https://example.com/forum/feed.php"
       }
     ]
-
     - "rss_url": null if no RSS feed found.
-    - Include URLs with 403 or other errors — record the actual status_label.
-    - "recency_status": "unknown" if the page could not be fetched for date scanning.
+    - Include 403/404 URLs with their actual status_label.
+    - "recency_status": "unknown" if the page could not be fetched.
 
 verifier:
   prompt: |
-    You are a critical URL verifier for US Men's College Basketball content.
+    You are a URL verifier for US Men's College Basketball content.
 
-    Your job: Given a URL and team name, determine if the URL is SPECIFICALLY dedicated to
-    US Men's College Basketball for that team. You must REJECT URLs that are:
-    - For a different sport (football, baseball, soccer, women's basketball, etc.)
-    - For the NBA or professional basketball
-    - General multi-sport team pages that are not basketball-specific
-    - For women's basketball or other genders
-    - For high school basketball
-    - Generic news aggregators not dedicated to this team's men's basketball
+    Given a URL and team name, determine if the page covers men's college basketball
+    for that team. Multi-sport sources are fine as long as men's basketball is included.
 
     PROCESS:
-    1. Use http_fetch to load the page content.
-    2. Analyze the page content, URL path, and navigation to determine the sport focus.
-    3. If the page cannot be fetched (403, 404, timeout), analyze the URL path structure
-       to make a determination. URLs containing "/mens-basketball", "/basketball/mens",
-       or similar paths are likely valid. Generic team root URLs (e.g. /college/team-name/)
-       are likely multi-sport and should be REJECTED.
+    1. Use http_fetch to load the page.
+    2. If fetch fails (403/404/timeout), judge from the URL path and domain name.
 
-    DECISION CRITERIA:
-    - PASS: The page is clearly dedicated to or primarily about this team's men's college basketball
-      (fan blogs, forums with basketball subforum paths, official athletics basketball pages,
-      basketball recruiting pages for this team)
-    - FAIL: The page covers multiple sports, is for a different sport, different gender,
-      professional basketball, or is not specific enough to men's college basketball
+    PASS if: the page includes men's college basketball content for this team
+    (dedicated basketball pages, multi-sport sites with basketball coverage,
+    student newspapers, official athletics, fan forums with basketball discussion).
 
-    Return ONLY a valid JSON array with one object per URL. No other text.
+    FAIL if: NO men's basketball content at all (football-only, women's basketball only,
+    NBA/professional only, high school only, or completely unrelated to this team).
+
+    Return ONLY a valid JSON array:
     [
-      {"url": "https://example.com/forum", "verdict": "PASS", "reason": "Dedicated men's basketball fan forum"},
-      {"url": "https://example.com/team", "verdict": "FAIL", "reason": "Multi-sport team page, not basketball-specific"}
+      {"url": "...", "verdict": "PASS", "reason": "..."},
+      {"url": "...", "verdict": "FAIL", "reason": "..."}
     ]
 
 event_categories:

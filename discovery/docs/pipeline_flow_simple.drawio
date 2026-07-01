@@ -1,0 +1,141 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Blog Discovery Pipeline - Simple" id="simple-pipeline">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;fontSize=20;fontStyle=1;" value="&lt;b&gt;College Fan Blogs Discovery Pipeline&lt;/b&gt;&lt;br&gt;&lt;i style=&quot;font-size:14px;font-weight:normal;&quot;&gt;NCAA Men's Basketball — Automated Blog &amp; Forum Registry&lt;/i&gt;" vertex="1">
+          <mxGeometry height="60" width="480" x="460" y="20" as="geometry" />
+        </mxCell>
+
+        <!-- Step 1: Team Discovery -->
+        <mxCell id="step1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#2563eb;fontColor=#1e3a5f;fontSize=13;arcSize=30;shadow=1;" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;🏀&lt;/font&gt;&lt;br&gt;&lt;b style=&quot;font-size:14px;&quot;&gt;Team Discovery&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px;&quot;&gt;365 NCAA D1 teams&lt;br&gt;from ESPN&lt;/font&gt;" vertex="1">
+          <mxGeometry height="120" width="150" x="50" y="140" as="geometry" />
+        </mxCell>
+
+        <!-- Step 2: Blog Search -->
+        <mxCell id="step2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3cd;strokeColor=#d97706;fontColor=#92400e;fontSize=13;arcSize=30;shadow=1;" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;🔍&lt;/font&gt;&lt;br&gt;&lt;b style=&quot;font-size:14px;&quot;&gt;Blog Discovery&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px;&quot;&gt;AI searches for fan&lt;br&gt;forums, blogs, RSS&lt;br&gt;&lt;i&gt;(per team)&lt;/i&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="120" width="150" x="270" y="140" as="geometry" />
+        </mxCell>
+
+        <!-- Step 3: Access Check -->
+        <mxCell id="step3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d1fae5;strokeColor=#059669;fontColor=#064e3b;fontSize=13;arcSize=30;shadow=1;" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;🌐&lt;/font&gt;&lt;br&gt;&lt;b style=&quot;font-size:14px;&quot;&gt;Access Check&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px;&quot;&gt;Is URL reachable?&lt;br&gt;200 OK vs 403/404&lt;/font&gt;" vertex="1">
+          <mxGeometry height="120" width="150" x="490" y="140" as="geometry" />
+        </mxCell>
+
+        <!-- Step 4: Recency Check -->
+        <mxCell id="step4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d1fae5;strokeColor=#059669;fontColor=#064e3b;fontSize=13;arcSize=30;shadow=1;" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;📅&lt;/font&gt;&lt;br&gt;&lt;b style=&quot;font-size:14px;&quot;&gt;Recency Check&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px;&quot;&gt;Last post date?&lt;br&gt;RSS → Regex → LLM&lt;/font&gt;" vertex="1">
+          <mxGeometry height="120" width="150" x="710" y="140" as="geometry" />
+        </mxCell>
+
+        <!-- Step 5: Verification -->
+        <mxCell id="step5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3cd;strokeColor=#d97706;fontColor=#92400e;fontSize=13;arcSize=30;shadow=1;" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;✅&lt;/font&gt;&lt;br&gt;&lt;b style=&quot;font-size:14px;&quot;&gt;Verification&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px;&quot;&gt;AI confirms: is this&lt;br&gt;men's basketball?&lt;/font&gt;" vertex="1">
+          <mxGeometry height="120" width="150" x="930" y="140" as="geometry" />
+        </mxCell>
+
+        <!-- Step 6: Registry -->
+        <mxCell id="step6" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ede9fe;strokeColor=#7c3aed;fontColor=#4c1d95;fontSize=13;rounded=1;shadow=1;" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;🗄️&lt;/font&gt;&lt;br&gt;&lt;b style=&quot;font-size:14px;&quot;&gt;Blog Registry&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px;&quot;&gt;DynamoDB&lt;br&gt;URLs + status per team&lt;/font&gt;" vertex="1">
+          <mxGeometry height="130" width="160" x="1150" y="135" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows: main flow -->
+        <mxCell id="e1" edge="1" parent="1" source="step1" target="step2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#374151;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="step2" target="step3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#374151;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="step3" target="step4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#374151;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="step4" target="step5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#374151;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="step5" target="step6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#16a34a;" value="PASS">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Rejected label under verification -->
+        <mxCell id="rejected" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fee2e2;strokeColor=#dc2626;fontColor=#991b1b;fontSize=12;arcSize=20;dashed=1;" value="❌ &lt;b&gt;Rejected&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;&quot;&gt;Wrong sport / not basketball&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="150" x="930" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="e-reject" edge="1" parent="1" source="step5" target="rejected" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=1;strokeColor=#dc2626;dashed=1;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Dashboard Section -->
+        <mxCell id="dashboard-bg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f3ff;strokeColor=#7c3aed;strokeWidth=2;arcSize=10;" value="" vertex="1">
+          <mxGeometry height="280" width="360" x="50" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="dashboard-title" parent="1" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=16;fontStyle=1;fontColor=#4c1d95;" value="📊 Trader Dashboard" vertex="1">
+          <mxGeometry height="30" width="200" x="130" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="dash-browse" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#7c3aed;fontColor=#4c1d95;fontSize=12;arcSize=20;" value="&lt;b&gt;Browse&lt;/b&gt;&lt;br&gt;View blogs by team&lt;br&gt;with status indicators" vertex="1">
+          <mxGeometry height="70" width="150" x="70" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="dash-bookmark" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#d97706;fontColor=#92400e;fontSize=12;arcSize=20;" value="&lt;b&gt;⭐ Bookmark&lt;/b&gt;&lt;br&gt;Save favorite sources&lt;br&gt;for quick access" vertex="1">
+          <mxGeometry height="70" width="150" x="240" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="dash-add" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#2563eb;fontColor=#1e3a5f;fontSize=12;arcSize=20;" value="&lt;b&gt;➕ Add URL&lt;/b&gt;&lt;br&gt;Manually add &amp;amp;&lt;br&gt;bookmark new sources" vertex="1">
+          <mxGeometry height="70" width="150" x="70" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="dash-remove" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fee2e2;strokeColor=#dc2626;fontColor=#991b1b;fontSize=12;arcSize=20;" value="&lt;b&gt;🗑️ Remove URL&lt;/b&gt;&lt;br&gt;Delete sources from&lt;br&gt;the registry" vertex="1">
+          <mxGeometry height="70" width="150" x="240" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="dash-summary" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d1fae5;strokeColor=#059669;fontColor=#064e3b;fontSize=12;arcSize=20;" value="&lt;b&gt;📈 Summary&lt;/b&gt;&lt;br&gt;Coverage stats, gaps,&lt;br&gt;crawl error breakdown" vertex="1">
+          <mxGeometry height="70" width="320" x="70" y="588" as="geometry" />
+        </mxCell>
+
+        <!-- Arrow: Registry to Dashboard -->
+        <mxCell id="e-reg-dash" edge="1" parent="1" source="step6" target="dashboard-bg" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#7c3aed;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1230" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Arrow: Dashboard add/remove back to Registry -->
+        <mxCell id="e-dash-reg" edge="1" parent="1" source="dash-add" target="step6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#2563eb;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="145" y="590" />
+              <mxPoint x="30" y="590" />
+              <mxPoint x="30" y="830" />
+              <mxPoint x="1230" y="830" />
+              <mxPoint x="1230" y="265" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Status Legend -->
+        <mxCell id="legend-bg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9fafb;strokeColor=#d1d5db;arcSize=10;" value="" vertex="1">
+          <mxGeometry height="140" width="280" x="490" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" parent="1" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=13;fontStyle=1;" value="URL Status Indicators" vertex="1">
+          <mxGeometry height="25" width="200" x="510" y="368" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-1" parent="1" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=12;" value="🟢 Crawlable &amp; Active (posted within 1 year)" vertex="1">
+          <mxGeometry height="22" width="260" x="510" y="398" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-2" parent="1" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=12;" value="🟡 Crawlable but Outdated (>1 year since last post)" vertex="1">
+          <mxGeometry height="22" width="270" x="510" y="423" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-3" parent="1" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=12;" value="🔴 Not Crawlable (403 Forbidden / blocked)" vertex="1">
+          <mxGeometry height="22" width="260" x="510" y="448" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-4" parent="1" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=12;" value="🔵 Crawlable, recency unknown" vertex="1">
+          <mxGeometry height="22" width="260" x="510" y="473" as="geometry" />
+        </mxCell>
+
+        <!-- Tech stack note -->
+        <mxCell id="tech" parent="1" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=11;fontColor=#6b7280;" value="&lt;i&gt;Powered by: Claude Sonnet 4 • Bedrock AgentCore Gateway • DynamoDB • React Dashboard&lt;/i&gt;" vertex="1">
+          <mxGeometry height="25" width="500" x="450" y="860" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

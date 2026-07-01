@@ -10,7 +10,7 @@ Flow:
 
 Usage:
 cd <rootdir>/discovery
-    To run on all teams in DEBUG mode (shows tool traces): AWS_PROFILE=FD uv run python run_discovery.py --config config/ncaa_mbb.yaml --debug 2>&1 | tee output/debug_run.log
+    To run on all teams in DEBUG mode (shows tool traces): AWS_PROFILE=FD uv run python run_discovery.py --config config/ncaa_mbb.yaml --workers 5 --debug > output/debug_run.log 2>&1 
     To run on N teams: AWS_PROFILE=FD uv run python run_discovery.py --config config/ncaa_mbb.yaml --limit N
 """
 
@@ -63,6 +63,26 @@ def _get_registry_table():
     return dynamodb.Table(table_name)
 
 
+def generate_team_id(team_name: str) -> str:
+    """Generate a stable team ID from a team name.
+
+    Lowercase, remove spaces and commas. This produces a deterministic ID
+    regardless of formatting variations.
+
+    Examples:
+        "Arizona Wildcats" → "arizonawildcats"
+        "Central Connecticut Blue Devils" → "centralconnecticutbluedevils"
+        "Texas A&M Aggies" → "texasa&maggies"
+
+    Args:
+        team_name: Full team name with mascot.
+
+    Returns:
+        Normalized team ID string.
+    """
+    return team_name.lower().replace(" ", "").replace(",", "")
+
+
 def load_registry() -> dict[str, Any]:
     """Load full blog registry from DynamoDB.
 
@@ -82,6 +102,21 @@ def load_registry() -> dict[str, Any]:
     return registry
 
 
+def build_team_id_index(registry: dict) -> dict[str, str]:
+    """Build a mapping of team_id → team_name from the registry.
+
+    Used to match newly discovered teams against existing entries regardless
+    of name formatting differences.
+
+    Args:
+        registry: Full registry dict keyed by team name.
+
+    Returns:
+        Dict mapping team_id to canonical team_name in the registry.
+    """
+    return {generate_team_id(name): name for name in registry.keys()}
+
+
 def save_team_to_registry(team_name: str, entry: dict[str, Any]) -> None:
     """Save a single team entry to DynamoDB.
 
@@ -90,14 +125,14 @@ def save_team_to_registry(team_name: str, entry: dict[str, Any]) -> None:
         entry: Dict with sport, team, conference, blogs.
     """
     table = _get_registry_table()
-    item = {**entry, "team": team_name}
+    item = {**entry, "team": team_name, "team_id": generate_team_id(team_name)}
     # Convert any None values to empty strings for DynamoDB
     for blog in item.get("blogs", []):
         for k, v in list(blog.items()):
             if v is None:
                 blog[k] = ""
     table.put_item(Item=item)
-    logger.info("Saved to DynamoDB: %s", team_name)
+    logger.info("Saved to DynamoDB: %s (id: %s)", team_name, generate_team_id(team_name))
 
 
 def _parse_json_array(response_text: str) -> list | None:
@@ -263,9 +298,8 @@ def discover_blogs_for_team(
             "Do not duplicate URLs already in the list."
         )
 
-    prompt = (
-        f"Find dedicated fan blogs and forums for {team} ({sport}).{existing_context}"
-    )
+    query_template = config["blog_discovery"]["query"]
+    prompt = query_template.format(team=team, sport=sport) + existing_context
 
     logger.info("Discovering blogs for: %s", team)
     result = agent(prompt)
@@ -472,6 +506,12 @@ def main() -> None:
         action="store_true",
         help="Enable DEBUG logging to see web search queries, tool outputs, and agent reasoning.",
     )
+    parser.add_argument(
+        "--team",
+        type=str,
+        default="",
+        help="Run discovery for a single team only (e.g. 'Colgate Raiders'). Case-insensitive partial match.",
+    )
     args = parser.parse_args()
 
     # Set log level based on --debug flag
@@ -497,9 +537,29 @@ def main() -> None:
     max_blogs = config["blog_discovery"].get("max_blogs_per_team", 5)
 
     registry = load_registry()
+    team_id_index = build_team_id_index(registry)
 
-    # Step 1: Discover teams
-    teams = discover_teams(config, debug=args.debug)
+    # Step 1: Discover teams (skip if --team is specified)
+    if args.team:
+        # Look up team in existing registry by team_id first
+        team_id = generate_team_id(args.team)
+        canonical_name = team_id_index.get(team_id)
+        if canonical_name:
+            existing_entry = registry[canonical_name]
+        else:
+            # Fallback: try case-insensitive partial match on registry keys
+            existing_entry = {}
+            for key, val in registry.items():
+                if args.team.lower() in key.lower():
+                    existing_entry = val
+                    break
+        team_name = existing_entry.get("team", args.team)
+        conference = existing_entry.get("conference", "Unknown")
+        teams = [{"team": team_name, "conference": conference}]
+        logger.info("Skipping team discovery — running for: %s (%s)", team_name, conference)
+    else:
+        teams = discover_teams(config, debug=args.debug)
+
     if args.limit > 0:
         teams = teams[: args.limit]
         logger.info("Limited to %d teams for testing", args.limit)
@@ -510,7 +570,16 @@ def main() -> None:
     def process_team(team_info: dict, index: int) -> None:
         team_name = team_info["team"]
         conference = team_info.get("conference", "Unknown")
-        logger.info("[%d/%d] Processing: %s (%s)", index, len(teams), team_name, conference)
+        team_id = generate_team_id(team_name)
+
+        # Resolve against existing registry by team_id
+        # e.g. "Arizona  Wildcats" and "arizona wildcats" both produce ID "arizonawildcats"
+        canonical_name = team_id_index.get(team_id)
+        if canonical_name and canonical_name != team_name:
+            logger.info("[%d/%d] Normalized: '%s' → '%s' (id: %s)", index, len(teams), team_name, canonical_name, team_id)
+            team_name = canonical_name
+        else:
+            logger.info("[%d/%d] Processing: %s (%s) [id: %s]", index, len(teams), team_name, conference, team_id)
 
         existing_blogs = registry.get(team_name, {}).get("blogs", [])
         existing_urls = {b.get("url") for b in existing_blogs}
@@ -527,7 +596,7 @@ def main() -> None:
         for blog in existing_blogs:
             if blog.get("accessible"):
                 from tools.recency_check import recency_check as _recency_check
-                result = _recency_check._tool_func(url=blog["url"])
+                result = _recency_check._tool_func(url=blog["url"], rss_url=blog.get("rss_url", ""))
                 blog["recency_status"] = result.get("recency_status", blog.get("recency_status"))
                 blog["last_post_date"] = result.get("last_post_date", blog.get("last_post_date"))
 
