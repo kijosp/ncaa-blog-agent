@@ -1,10 +1,10 @@
 # College Fan Blogs Discovery Pipeline
 
-An AI-powered pipeline that automatically discovers, validates, and monitors fan blogs and forums for NCAA Men's Basketball teams. Built for sports traders who need timely information from decentralized fan communities.
+An AI-powered pipeline that automatically discovers fan blogs and forums for for an input sports. The sports name and discovery prompts are all configurable via a config yaml file that serves as the input for this pipeline. The pipeline has a UI to give traders transparency on what fan blogs have been discovered per team, and also allows them to add their own favorite fan blog URLs, bookmark them, and delete URLs if they find it irrelevant.
 
 ## What It Does
 
-For each of the 365 NCAA Division 1 men's basketball teams, the pipeline:
+For each team in the configured sport (currently 365 NCAA Division 1 men's basketball teams), the pipeline:
 
 1. **Discovers** fan blogs, forums, and news sources via web search
 2. **Checks accessibility** (is the URL reachable or bot-blocked?)
@@ -49,7 +49,7 @@ discovery/
 - [uv](https://docs.astral.sh/uv/) (Python package manager)
 - Node.js 18+ (for the dashboard)
 - AWS account with:
-  - Bedrock access (Claude Sonnet 4)
+  - Bedrock access
   - DynamoDB table (`blog-discovery-registry`)
   - Bedrock AgentCore Gateway (for web search MCP tool)
   - Cognito M2M credentials (for gateway auth)
@@ -115,6 +115,7 @@ AWS_PROFILE=<profile> uv run python run_discovery.py \
   --config config/ncaa_mbb.yaml \
   --team "Duke Blue Devils" \
   --debug
+
 ```
 
 ### CLI Options
@@ -146,9 +147,8 @@ Open http://localhost:5173
 ### Dashboard Features
 
 - **Summary tab**: Coverage stats, teams without sources, crawl errors
-- **Team View tab**: Browse URLs per team, add/remove URLs manually
+- **Team View tab**: Browse URLs per team, add/remove URLs manually, bookmark URLs
 - **My Sources tab**: Bookmarked favorites across all teams
-- **Status indicators**: 🟢 Active, 🟡 Outdated, 🔴 Not crawlable, 🔵 Unknown
 
 ## Testing
 
@@ -174,27 +174,9 @@ AWS_PROFILE=<profile> uv run python run_discovery.py \
 curl http://localhost:8080/api/registry | python -m json.tool | head -20
 ```
 
-## Architecture
+## Flow Diagram
 
-```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  Team Discovery │────▶│  Blog Discovery  │────▶│   Verification  │
-│   (AI Agent)    │     │   (AI Agent)     │     │   (AI Agent)    │
-│                 │     │                  │     │                 │
-│ ESPN → 365 teams│     │ Web Search ×4    │     │ http_fetch page │
-│                 │     │ access_check     │     │ confirm sport   │
-│                 │     │ recency_check    │     │                 │
-└─────────────────┘     └──────────────────┘     └────────┬────────┘
-                                                          │
-                                                          ▼
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│    Dashboard    │◀────│   API Server     │◀────│    DynamoDB     │
-│  (React/Vite)  │     │  (Python HTTP)   │     │  Blog Registry  │
-│                 │     │                  │     │                 │
-│ Browse/Bookmark │────▶│ Add/Remove URLs  │────▶│ team_id + URLs  │
-│ Add/Remove URLs │     │ Toggle bookmarks │     │ + status/dates  │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
-```
+![Pipeline Flow](docs/pipeline_flow_simple.drawio.png)
 
 ## Recency Check Algorithm
 
@@ -219,18 +201,35 @@ On re-runs, discovered team names are matched against existing registry by `team
 
 ## Configuration
 
-The domain config (`config/ncaa_mbb.yaml`) contains:
-- **Team discovery prompt** — instructions for finding all D1 teams
-- **Blog discovery prompt** — search queries, examples, exclude/include rules
-- **Verifier prompt** — criteria for accepting/rejecting URLs
-- **Settings** — max blogs per team, recency threshold, reference date
+The domain config (`config/ncaa_mbb.yaml`) is the primary input to the pipeline. It defines what sport to discover blogs for, how to search, and what to accept/reject. To adapt this pipeline for a different sport (e.g., college football, NBA), create a new YAML config with appropriate prompts.
 
-## Cost Considerations
+Config structure:
+```yaml
+domain_id: ncaa_mbb                    # Unique identifier for this sport
+display_name: "NCAA Men's Basketball"  # Human-readable sport name
+reference_date: null                   # Set to YYYY-MM-DD or null for today
 
-Per full pipeline run (~365 teams):
-- ~1,500 web searches (via AgentCore Gateway)
-- ~2,000 Bedrock Converse calls (Sonnet 4 for discovery + verification)
-- ~500 LLM recency fallback calls (only when RSS + regex fail)
-- DynamoDB: minimal (365 items, on-demand billing)
+team_discovery:
+  query: "..."                         # User message sent to the team discovery agent
+  primary_url: "..."                   # ESPN or other source for team list
+  prompt: |                            # System prompt for team discovery agent
+    ...
 
-Estimated cost: ~$15-25 per full run depending on how many teams need fresh discovery vs. recency refresh only.
+blog_discovery:
+  query: "..."                         # User message template ({team}, {sport} placeholders)
+  max_blogs_per_team: 10               # Max URLs to discover per team
+  recency_threshold_days: 365          # Days before a blog is considered "outdated"
+  prompt: |                            # System prompt: search queries, examples, rules
+    ...
+
+verifier:
+  prompt: |                            # System prompt: accept/reject criteria
+    ...
+```
+
+Key design decisions in the config:
+- **Few-shot examples** in the blog discovery prompt guide the AI toward small independent forums
+- **EXCLUDE/DO NOT EXCLUDE** rules control what types of sources are accepted
+- **Subforum path patterns** help the agent find working URLs for bot-blocked sites
+- **Verifier** accepts multi-sport sources as long as the target sport is covered
+
