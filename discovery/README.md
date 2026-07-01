@@ -4,6 +4,10 @@ An AI-powered pipeline that automatically discovers college-specific fan blogs a
 
 **For traders:** No more manually curating Excel sheets of fan blog URLs. This pipeline automatically finds and validates fan blogs across all teams. A dashboard gives traders full transparency into what's been discovered — and lets them add their own favorite sources, bookmark them, or remove irrelevant ones. This dashboard will be integrated into FanDuel's main project UI, where a downstream blog search agent uses these discovered URLs to surface injury news, roster moves, and other trading signals.
 
+## Flow Diagram
+
+![Pipeline Flow](docs/pipeline_flow_simple.drawio.png)
+
 ## What It Does
 
 For each team in the configured sport (currently 365 NCAA Division 1 men's basketball teams), the pipeline:
@@ -175,10 +179,6 @@ AWS_PROFILE=<profile> uv run python run_discovery.py \
 ```bash
 curl http://localhost:8080/api/registry | python -m json.tool | head -20
 ```
-
-## Flow Diagram
-
-![Pipeline Flow](docs/pipeline_flow_simple.drawio.png)
 
 ## Recency Check Algorithm
 
