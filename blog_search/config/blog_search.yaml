@@ -1,0 +1,69 @@
+# Blog Search Agent Configuration
+# This file configures the blog search / information extraction agent.
+# Used by both the coverage test script and the production chat interface.
+
+domain_id: ncaa_mbb
+display_name: "NCAA Men's Basketball"
+sport: "men's basketball"
+
+# Teams to test indexing coverage (less popular teams chosen deliberately)
+test_teams:
+  - "Chicago State Cougars"
+  - "Colgate Raiders"
+
+# Agent behavior configuration
+agent:
+  model_id: "us.anthropic.claude-sonnet-4-6"
+  temperature: 0.1
+  max_turns: 15  # Max agent loop iterations per query
+
+# Query template for the blog search agent
+# {team}, {sport}, {urls} are interpolated at runtime
+query_template: |
+  Find the latest injury news for {team} in {sport} from these specific URLs:
+
+  {urls}
+
+  For each URL:
+  1. Use web search to find recent injury content from this site (try "site:{domain} {team} injury")
+  2. If an RSS feed is available, fetch it and look for injury-related entries
+  3. Directly fetch the URL and scan for injury content
+
+  Report what you find using the structured output format. Be thorough — try all three methods for each URL.
+
+# Structured output schema (for reference only; enforced in the system prompt)
+output_schema:
+  sport: "string"
+  team: "string"
+  results:
+    - source_url: "string"
+      event_type: "injury"
+      player_name: "string or null"
+      excerpt: "string"
+      summary: "string"
+      blog_post_date: "YYYY-MM-DD or null"
+      record_timestamp: "ISO 8601"
+      retrieval_method: "web_search or rss or web_fetch"
+  retrieval_diagnostics:
+    urls_searched: "integer"
+    web_search_queries: "list of strings"
+    web_search_returned_results: "boolean"
+    web_search_hit_target_domain: "boolean"
+    rss_available: "boolean"
+    rss_had_recent_entries: "boolean"
+    web_fetch_successful: "boolean"
+    web_fetch_had_injury_content: "boolean"
+
+# Coverage test settings
+coverage_test:
+  # Save results to these files
+  output_dir: "output"
+  output_format: "json"  # json | both (json + human-readable summary)
+
+  # What to measure in the test
+  metrics:
+    - web_search_hit_rate          # % of URLs where web_search found content from target domain
+    - rss_coverage_rate            # % of URLs with working RSS feeds
+    - web_fetch_success_rate       # % of URLs where direct fetch succeeded
+    - injury_content_found_rate    # % of URLs where ANY method found injury content
+    - freshness_score              # Average age (in days) of most recent content found
