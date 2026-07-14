@@ -115,8 +115,8 @@ After successful deploy, verify the Web Search tool is accessible:
 
 ```bash
 # Check target status
-GATEWAY_ID=$(aws bedrock-agentcore-control list-gateways --profile fanduel --region us-east-1 --query 'items[0].gatewayId' --output text)
-aws bedrock-agentcore-control list-gateway-targets --gateway-identifier $GATEWAY_ID --profile fanduel --region us-east-1
+GATEWAY_ID=$(aws bedrock-agentcore-control list-gateways --profile your-profile --region us-east-1 --query 'items[0].gatewayId' --output text)
+aws bedrock-agentcore-control list-gateway-targets --gateway-identifier $GATEWAY_ID --profile your-profile --region us-east-1
 
 # Check it appears in tools/list via MCP (needs M2M token)
 # Should show: web-search-tool___WebSearch
