@@ -1,14 +1,12 @@
-"""Tool: fetch webpage content and extract readable text with injury detection.
+"""Tool: fetch webpage content and extract readable text.
 
 Enhanced version of discovery's http_fetch tool. Adds:
-  - Injury keyword scanning in the extracted text
   - Date extraction from page content
   - Content section extraction (finds the main article body)
 """
 
 import logging
 import re
-from datetime import datetime, timezone
 from typing import Any
 
 import requests
@@ -18,16 +16,7 @@ logger = logging.getLogger(__name__)
 
 _TIMEOUT_SECONDS: int = 15
 _MAX_CONTENT_BYTES: int = 500_000  # 500KB max download
-_MAX_RETURN_CHARS: int = 50_000  # 50K chars returned to agent (context-friendly)
-
-# Injury keywords for content scanning
-_INJURY_KEYWORDS = [
-    "injury", "injured", "out", "day-to-day", "questionable", "doubtful",
-    "probable", "sprain", "strain", "acl", "mcl", "concussion", "fracture",
-    "surgery", "rehab", "sidelined", "miss", "torn", "knee", "ankle",
-    "hamstring", "shoulder", "wrist", "broken", "dnp", "illness",
-    "health update", "status update", "return to",
-]
+_MAX_RETURN_CHARS: int = 15_000  # 15K chars returned to agent (context-friendly)
 
 
 def _html_to_text(html: str) -> str:
@@ -95,54 +84,22 @@ def _extract_dates(text: str) -> list[str]:
     return sorted(dates, reverse=True)
 
 
-def _find_injury_snippets(text: str, max_snippets: int = 5) -> list[str]:
-    """Find text snippets around injury keywords.
-
-    Returns:
-        List of ~200-char snippets containing injury keywords.
-    """
-    snippets = []
-    text_lower = text.lower()
-
-    for keyword in _INJURY_KEYWORDS:
-        start = 0
-        while True:
-            idx = text_lower.find(keyword, start)
-            if idx == -1:
-                break
-            # Extract ~200 chars around the keyword
-            snippet_start = max(0, idx - 80)
-            snippet_end = min(len(text), idx + len(keyword) + 120)
-            snippet = text[snippet_start:snippet_end].strip()
-            if snippet and len(snippet) > 20:
-                snippets.append(snippet)
-            start = idx + len(keyword)
-            if len(snippets) >= max_snippets:
-                break
-        if len(snippets) >= max_snippets:
-            break
-
-    return snippets
-
-
 @tool
 def web_fetch(url: str) -> dict[str, Any]:
-    """Fetch a webpage, extract readable text, and scan for injury-related content.
+    """Fetch a webpage and extract readable text content.
 
-    Fetches the URL, strips HTML, and returns clean text plus metadata about
-    whether injury-related content was found and what dates appear on the page.
+    Fetches the URL, strips HTML, and returns clean text plus metadata
+    about what dates appear on the page.
 
     Args:
-        url: The full URL to fetch (e.g. "https://colgatefanforum.com/injuries/").
+        url: The full URL to fetch (e.g. "https://colgatefanforum.com/news/post-123").
 
     Returns:
         A dict with keys:
           - url: the URL fetched
-          - content: clean text content (truncated to 50K chars for context efficiency)
+          - content: clean text content (truncated to 15K chars for context efficiency)
           - content_length: character count of the full extracted text
           - dates_found: list of dates found on page (YYYY-MM-DD, most recent first)
-          - has_injury_content: True if injury keywords were found
-          - injury_snippets: list of text snippets around injury keywords
           - error: str or None
     """
     try:
@@ -162,24 +119,19 @@ def web_fetch(url: str) -> dict[str, Any]:
         raw = resp.content[:_MAX_CONTENT_BYTES].decode("utf-8", errors="ignore")
         text = _html_to_text(raw)
         dates = _extract_dates(text)
-        injury_snippets = _find_injury_snippets(text)
-        has_injury = len(injury_snippets) > 0
 
-        # Truncate for context window efficiency
         content_for_return = text[:_MAX_RETURN_CHARS]
 
         logger.info(
-            "[WEB_FETCH] url=%s content_length=%d dates=%d injury=%s",
-            url, len(text), len(dates), has_injury,
+            "[WEB_FETCH] url=%s content_length=%d dates=%d",
+            url, len(text), len(dates),
         )
 
         return {
             "url": url,
             "content": content_for_return,
             "content_length": len(text),
-            "dates_found": dates[:10],  # Top 10 most recent dates
-            "has_injury_content": has_injury,
-            "injury_snippets": injury_snippets,
+            "dates_found": dates[:10],
             "error": None,
         }
 
@@ -190,7 +142,5 @@ def web_fetch(url: str) -> dict[str, Any]:
             "content": "",
             "content_length": 0,
             "dates_found": [],
-            "has_injury_content": False,
-            "injury_snippets": [],
             "error": str(e),
         }

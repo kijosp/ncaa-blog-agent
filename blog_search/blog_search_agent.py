@@ -1,54 +1,48 @@
 """Blog Search Agent — extracts sports events from fan blog URLs.
 
-Deployed as an AgentCore Runtime agent. Can also be invoked by a chat agent
-for interactive follow-up questions.
+Deployed as an AgentCore Runtime agent. Supports two modes:
 
-## Use Cases:
-1. Batch extraction: "Find all injury/schedule/venue events for team X from these URLs"
-2. Chat follow-up: "Can you check this URL and see if there's injury news?"
-3. Detail drill-down: "Show me the exact paragraph about Caleb Foster's injury"
+1. **Chat mode** (default): Conversational agent invoked by users or by the
+   enrichment agent. Accepts free-form natural language questions. Has access to
+   registry_lookup, rss_fetch, web_fetch, and web search tools. Responds
+   conversationally with cited sources.
+
+2. **Workflow mode**: Deterministic pipeline for scheduled/batch runs. Fetches team
+   blog URLs from DynamoDB registry, searches RSS + web for events, returns structured
+   JSON. Controlled by `lookback_days` for date filtering.
 
 ## Payload Schema (input):
 
+### Chat mode (default):
 {
-  "prompt": "Find latest events for Colgate Raiders",   # User query (required)
-  "team": "Colgate Raiders",                            # optional if in prompt
-  "sport": "NCAA Men's Basketball",                     # optional
-  "events": ["injury", "schedule_update"],              # optional, defaults to all
-  "urls": [                                             # optional — reads from registry if omitted
-    {"url": "https://...", "rss_url": "https://..." or null}
-  ]
+  "message": "Has there been any injury news for Duke Blue Devils?",
+  "runtimeSessionId": "session-abc-123"   # required for multi-turn memory
 }
 
-## Output Schema:
-
+### Workflow mode:
 {
-  "results": [
-    {
-      "sport": "NCAA Men's Basketball",
-      "team": "Colgate Raiders",
-      "event_category": "injury",
-      "player_name": "Blake Forrest",
-      "excerpt": "Without sophomore guard Blake Forrest...",
-      "summary": "Sophomore guard missed most of 2025-26 season",
-      "source_url": "https://...",
-      "blog_post_date": "2026-04-03",
-      "record_timestamp": "2026-07-10T00:00:00Z",
-      "retrieval_method": "rss + web_fetch"
-    }
-  ],
-  "web_search_raw_results": [...],
-  "retrieval_diagnostics": {...}
+  "mode": "workflow",
+  "team": "Colgate Raiders",                            # REQUIRED
+  "sport": "NCAA Men's Basketball",                     # optional
+  "events": ["INJURY", "ROSTER"],                       # optional, defaults to all
+  "lookback_days": 7                                    # optional, default 0 (today only)
 }
 """
 
+import base64
 import json
 import logging
 import os
-from datetime import datetime, timezone
+import re
+from datetime import date, timedelta
+from functools import lru_cache
 from urllib.parse import urlparse
 
 import requests as http_requests
+from bedrock_agentcore.memory.integrations.strands.config import AgentCoreMemoryConfig
+from bedrock_agentcore.memory.integrations.strands.session_manager import (
+    AgentCoreMemorySessionManager,
+)
 from dotenv import load_dotenv
 from mcp.client.streamable_http import streamablehttp_client
 from strands import Agent
@@ -56,6 +50,9 @@ from strands.handlers.callback_handler import null_callback_handler
 from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
 
+from models import EVENT_TYPES, BlogSearchResponse, validate_response
+from prompts import load_prompt
+from tools.registry_reader import get_team_urls, registry_lookup
 from tools.rss_fetch import rss_fetch
 from tools.web_fetch import web_fetch
 
@@ -68,26 +65,22 @@ if not os.path.exists(_env_path):
     _env_path = os.path.join(_this_dir, "..", "discovery", ".env")
 load_dotenv(_env_path)
 
-
-# ---------------------------------------------------------------------------
-# Supported event categories
-# ---------------------------------------------------------------------------
-
-SUPPORTED_EVENTS = [
-    "injury",           # Player injuries, health updates, return-to-play
-    "schedule_update",  # Game time changes, postponements, cancellations
-    "venue_update",     # Venue changes, location updates
-    "roster_move",      # Transfers, commitments, decommitments, suspensions
-    "coaching_change",  # Coaching hires, firings, resignations
-]
+MAX_TURNS_CHAT = 15
+MAX_TURNS_WORKFLOW = 10
+MAX_VALIDATION_RETRIES = 2
 
 
 # ---------------------------------------------------------------------------
 # Auth & MCP Client
 # ---------------------------------------------------------------------------
 
+@lru_cache(maxsize=1)
 def _get_m2m_token() -> str:
-    """Fetch an M2M access token from Cognito using client_credentials grant."""
+    """Fetch an M2M access token from Cognito using client_credentials grant.
+
+    Cached for the lifetime of the process (tokens typically valid ~1 hour,
+    process restarts on deploy).
+    """
     domain = os.environ.get("COGNITO_DOMAIN")
     client_id = os.environ.get("COGNITO_CLIENT_ID")
     client_secret = os.environ.get("COGNITO_CLIENT_SECRET")
@@ -111,198 +104,142 @@ def _get_m2m_token() -> str:
     return token
 
 
-def _create_gateway_mcp_client() -> MCPClient:
-    """Create an MCP client for the AgentCore Gateway (provides WebSearch tool)."""
+_gateway_client: MCPClient | None = None
+
+
+def _get_gateway_mcp_client() -> MCPClient:
+    """Get or create the cached MCP client for the AgentCore Gateway."""
+    global _gateway_client
+    if _gateway_client is not None:
+        return _gateway_client
+
     gateway_url = os.environ.get("GATEWAY_URL")
     if not gateway_url:
         raise ValueError("GATEWAY_URL environment variable is required")
 
     gateway_token = os.environ.get("GATEWAY_TOKEN") or _get_m2m_token()
 
-    return MCPClient(
+    _gateway_client = MCPClient(
         lambda: streamablehttp_client(
             url=gateway_url,
             headers={"Authorization": f"Bearer {gateway_token}"},
         ),
         prefix="gateway",
     )
+    return _gateway_client
 
 
 # ---------------------------------------------------------------------------
-# System prompt
+# Payload → user message builders
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT = """\
-You are a sports event extraction agent. You search fan blogs and news sources for
-a specific college team and extract structured event data.
-
-You can handle two types of requests:
-1. **Batch extraction**: Given a team, URLs, and event categories — find all matching events.
-2. **Follow-up queries**: Given a specific URL or previous result — provide more detail,
-   exact paragraphs, or answer questions about the content.
-
-## Event Categories
-
-- **injury**: Player injuries, health updates, return-to-play timelines, surgery
-- **schedule_update**: Game time changes, postponements, cancellations, added games
-- **venue_update**: Venue changes, location updates, arena closures
-- **roster_move**: Transfers, portal entries, commitments, decommitments, suspensions
-- **coaching_change**: Coaching hires, firings, resignations, interim appointments
-
-## Retrieval Strategy (Cost-Optimized)
-
-When performing batch extraction, follow this strategy IN ORDER:
-
-### Step 1: RSS Feeds (FREE — do this first)
-For every URL that has an RSS feed, call rss_fetch on it.
-- Read ALL entries (title, description, link, date).
-- Identify entries that relate to ANY of the requested event categories.
-- For promising entries, note their link URL for follow-up with web_fetch.
-
-### Step 2: Web Search for non-RSS URLs only (PAID — minimize)
-For URLs without RSS, use web search: "site:{domain} {team} {keywords}"
-- One search per non-RSS domain.
-
-### Step 3: One general catch-all search (PAID — one per team)
-Run ONE search: "{team} {sport} {keywords} 2025 2026"
-- Catches news from sources outside our URL list.
-
-### Step 4: Web Fetch for promising links (FREE)
-Call web_fetch on specific article URLs found via RSS or web search.
-- Do NOT fetch landing pages — only specific articles/posts.
-
-For **follow-up queries** (user asking for more detail on a specific URL or result):
-- Just call web_fetch on the URL and provide the requested information.
-
-## Output Format
-
-ALWAYS return a JSON object with this structure:
-```json
-{
-  "results": [
-    {
-      "sport": "<sport name>",
-      "team": "<team name>",
-      "event_category": "<injury | schedule_update | venue_update | roster_move | coaching_change>",
-      "player_name": "<player/coach name if applicable, else null>",
-      "excerpt": "<exact quote from the source, 1-3 sentences>",
-      "summary": "<your concise 1-sentence summary>",
-      "source_url": "<the URL where this was found>",
-      "blog_post_date": "<YYYY-MM-DD if determinable, else null>",
-      "record_timestamp": "<current ISO timestamp>",
-      "retrieval_method": "<rss | web_search | web_search + web_fetch | rss + web_fetch | web_fetch>"
-    }
-  ],
-  "web_search_raw_results": [
-    {
-      "query": "<exact search query>",
-      "results": [
-        {"title": "<>", "url": "<>", "snippet": "<>", "from_target_domain": true/false}
-      ]
-    }
-  ],
-  "retrieval_diagnostics": {
-    "urls_total": <number>,
-    "urls_with_rss": <number>,
-    "urls_without_rss": <number>,
-    "web_searches_performed": <number>,
-    "web_search_queries": ["<queries>"],
-    "web_search_hit_target_domain": true/false,
-    "rss_feeds_fetched": <number>,
-    "web_fetches_performed": <number>,
-    "events_found_via_rss": true/false,
-    "events_found_via_web_search": true/false
-  }
-}
-```
-
-## Rules
-- Search for ALL requested event categories, not just injuries.
-- Each result must have sport, team, and event_category populated.
-- ALWAYS do RSS first for URLs with feeds.
-- Only use web search for non-RSS URLs + one catch-all.
-- Use web_fetch on specific article URLs only.
-- Deduplicate: same event from multiple methods → one result, note all methods.
-- If no events found, return empty results with filled diagnostics.
-- For follow-up queries, web_search_raw_results and retrieval_diagnostics can be minimal.
-"""
-
-
-# ---------------------------------------------------------------------------
-# Payload → user message builder
-# ---------------------------------------------------------------------------
-
-def build_user_message(payload: dict) -> str:
-    """Convert a structured payload into the user message sent to the LLM.
-
-    Keeps the message focused on DATA only. The system prompt handles strategy.
-
-    Args:
-        payload: Structured input dict.
-
-    Returns:
-        A clean user message string for the agent.
-    """
-    # If there's a raw prompt (chat mode), use it directly with context
-    prompt = payload.get("prompt", "")
-    team = payload.get("team", "")
-    sport = payload.get("sport", "NCAA Men's Basketball")
-    events = payload.get("events", SUPPORTED_EVENTS)
-    urls = payload.get("urls", [])
-
+def _format_url_section(blogs: list[dict]) -> list[str]:
+    """Format blog URLs into message lines, split by RSS availability."""
     lines = []
+    rss_blogs = [b for b in blogs if b.get("rss_url")]
+    non_rss_blogs = [b for b in blogs if not b.get("rss_url")]
 
-    # If user provided a free-form prompt, include it
-    if prompt:
-        lines.append(prompt)
+    if rss_blogs:
+        lines.append(f"URLs with RSS feeds ({len(rss_blogs)}):")
+        for b in rss_blogs:
+            lines.append(f"  - {b['url']}")
+            lines.append(f"    RSS: {b['rss_url']}")
         lines.append("")
 
-    # Add structured context
-    if team:
-        lines.append(f"Team: {team}")
-    if sport:
-        lines.append(f"Sport: {sport}")
-    lines.append(f"Event categories to detect: {', '.join(events)}")
-    lines.append("")
+    if non_rss_blogs:
+        lines.append(f"URLs without RSS ({len(non_rss_blogs)}):")
+        for b in non_rss_blogs:
+            domain = urlparse(b["url"]).netloc
+            lines.append(f"  - {b['url']} (domain: {domain})")
+        lines.append("")
 
-    if urls:
-        # Separate by RSS availability
-        rss_urls = [u for u in urls if u.get("rss_url")]
-        non_rss_urls = [u for u in urls if not u.get("rss_url")]
+    return lines
 
-        if rss_urls:
-            lines.append(f"URLs with RSS feeds ({len(rss_urls)}):")
-            for u in rss_urls:
-                lines.append(f"  - {u['url']}")
-                lines.append(f"    RSS: {u['rss_url']}")
-            lines.append("")
 
-        if non_rss_urls:
-            lines.append(f"URLs without RSS ({len(non_rss_urls)}):")
-            for u in non_rss_urls:
-                domain = urlparse(u["url"]).netloc
-                lines.append(f"  - {u['url']} (domain: {domain})")
-            lines.append("")
+def build_user_message(payload: dict) -> str:
+    """Extract the user's natural language message from the payload.
 
+    Chat mode accepts a free-form message — the agent handles interpretation,
+    team extraction, and tool calls autonomously based on the system prompt.
+    """
+    return payload.get("message") or payload.get("prompt", "")
+
+
+def _build_workflow_message(
+    team: str,
+    sport: str,
+    events: list[str],
+    blogs: list[dict],
+    date_start: str,
+    date_end: str,
+) -> str:
+    """Build the user message for workflow mode with pre-resolved URLs."""
+    lines = [
+        f"Team: {team}",
+        f"Sport: {sport}",
+        f"Event types to detect: {', '.join(events)}",
+        f"Date range: {date_start} to {date_end}",
+        "",
+    ]
+    lines.extend(_format_url_section(blogs))
     return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
-# Debug callback handler
+# Debug utilities
 # ---------------------------------------------------------------------------
 
-class DebugCallbackHandler:
-    """Prints agent reasoning, tool calls, and results to stdout."""
+def _debug_print_section(title: str, content: str) -> None:
+    """Print a labeled debug section."""
+    print(f"\n{'━'*70}")
+    print(f"  {title}")
+    print(f"{'━'*70}")
+    for line in content.rstrip().split("\n"):
+        print(f"  │ {line}")
+    print(f"{'━'*70}\n")
 
-    def __init__(self):
-        self._current_role = None
+
+def _debug_print_payload(payload: dict) -> None:
+    """Print the input payload as formatted JSON."""
+    _debug_print_section("INPUT PAYLOAD", json.dumps(payload, indent=2, default=str))
+
+
+def _debug_print_system_prompt(mode: str, prompt: str) -> None:
+    """Print the full system prompt."""
+    _debug_print_section(f"SYSTEM PROMPT [{mode.upper()} MODE]", prompt)
+
+
+def _debug_print_user_message(message: str) -> None:
+    """Print the user message sent to the agent."""
+    _debug_print_section("USER MESSAGE → AGENT", message)
+
+
+def _debug_print_registry_urls(team: str, blogs: list[dict]) -> None:
+    """Print the blog URLs discovered from the registry for a team."""
+    lines = [f"Team: {team}", f"Total searchable URLs: {len(blogs)}", ""]
+    rss_blogs = [b for b in blogs if b.get("rss_url")]
+    non_rss_blogs = [b for b in blogs if not b.get("rss_url")]
+    if rss_blogs:
+        lines.append(f"With RSS ({len(rss_blogs)}):")
+        for b in rss_blogs:
+            lines.append(f"  {b['url']}")
+            lines.append(f"    ↳ RSS: {b['rss_url']}")
+        lines.append("")
+    if non_rss_blogs:
+        lines.append(f"Without RSS ({len(non_rss_blogs)}):")
+        for b in non_rss_blogs:
+            lines.append(f"  {b['url']}")
+        lines.append("")
+    _debug_print_section("REGISTRY URLs", "\n".join(lines))
+
+
+class DebugCallbackHandler:
+    """Prints agent trace: reasoning, tool calls, and results to stdout."""
 
     def __call__(self, **kwargs):
         if "data" in kwargs:
-            # Streaming text from the model
             print(kwargs["data"], end="", flush=True)
         elif "current_tool_use" in kwargs and "tool_result" not in kwargs:
-            # Tool call starting
             tool = kwargs["current_tool_use"]
             name = tool.get("name", "")
             inp = tool.get("input", {})
@@ -313,14 +250,12 @@ class DebugCallbackHandler:
                     print(f"       {k}: {val_str}")
             print()
         elif "tool_result" in kwargs:
-            # Tool result
             result = kwargs.get("tool_result", {})
             status = result.get("status", "")
             content = result.get("content", [])
             if status == "error":
                 print(f"  ❌ TOOL ERROR: {content}")
             else:
-                # Print a brief summary of the result
                 for item in content[:1]:
                     if isinstance(item, dict) and "text" in item:
                         text = item["text"][:300]
@@ -329,45 +264,416 @@ class DebugCallbackHandler:
 
 
 # ---------------------------------------------------------------------------
-# Agent factory
+# Memory & Auth
 # ---------------------------------------------------------------------------
 
-def create_blog_search_agent(debug: bool = False) -> Agent:
-    """Create the blog search agent.
+def _extract_user_id(context) -> str:
+    """Extract user ID from JWT token in request context."""
+    headers = context.request_headers or {}
+    auth_header = headers.get("Authorization", "") or headers.get("authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise ValueError("Invalid or missing Authorization header")
 
-    Args:
-        debug: If True, prints tool calls and reasoning to stdout.
+    token = auth_header[7:]
+    payload_segment = token.split(".")[1]
+    payload_segment += "=" * (4 - len(payload_segment) % 4)
+    payload = json.loads(base64.b64decode(payload_segment))
 
-    Returns:
-        A Strands Agent configured for event extraction.
+    user_id = payload.get("sub")
+    if not user_id:
+        raise ValueError("No 'sub' claim in JWT token")
+    return user_id
+
+
+def _create_session_manager(user_id: str, session_id: str) -> AgentCoreMemorySessionManager:
+    """Create AgentCore memory session manager for conversation history."""
+    memory_id = os.environ.get("MEMORY_ID")
+    if not memory_id:
+        raise ValueError("MEMORY_ID environment variable is required")
+
+    region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+
+    config = AgentCoreMemoryConfig(
+        memory_id=memory_id,
+        session_id=session_id,
+        actor_id=user_id,
+    )
+
+    return AgentCoreMemorySessionManager(
+        agentcore_memory_config=config,
+        region_name=region,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Agent factories
+# ---------------------------------------------------------------------------
+
+def create_chat_agent(
+    user_id: str | None = None,
+    session_id: str | None = None,
+    debug: bool = False,
+) -> Agent:
+    """Create the blog search agent for chat mode.
+
+    Has all tools: gateway (web search), rss_fetch, web_fetch, registry_lookup.
+    When user_id and session_id are provided, AgentCore memory is attached for
+    multi-turn conversation history.
     """
-    gateway_client = _create_gateway_mcp_client()
+    gateway_client = _get_gateway_mcp_client()
     model_id = os.environ.get("MODEL_ID", "us.anthropic.claude-sonnet-4-6")
-    model = BedrockModel(model_id=model_id, temperature=0.1)
+    model = BedrockModel(model_id=model_id, temperature=0)
+
+    today = date.today()
+    default_lookback = int(os.environ.get("DEFAULT_LOOKBACK_DAYS", "7"))
+    date_start = (today - timedelta(days=default_lookback)).isoformat()
+
+    system_prompt = load_prompt("chat_system_prompt").format(
+        event_types=", ".join(EVENT_TYPES),
+        current_date=today.isoformat(),
+        date_range=f"{date_start} to {today.isoformat()}",
+    )
 
     if debug:
         handler = DebugCallbackHandler()
+        _debug_print_system_prompt("chat", system_prompt)
     else:
         handler = null_callback_handler
 
-    agent = Agent(
-        name="blog_search_agent",
+    session_manager = None
+    if user_id and session_id:
+        try:
+            session_manager = _create_session_manager(user_id, session_id)
+        except Exception as e:
+            logger.warning("Failed to create session manager, continuing without memory: %s", e)
+
+    return Agent(
+        name="blog_search_chat",
         model=model,
-        tools=[gateway_client, rss_fetch, web_fetch],
-        system_prompt=SYSTEM_PROMPT,
+        tools=[gateway_client, rss_fetch, web_fetch, registry_lookup],
+        system_prompt=system_prompt,
         callback_handler=handler,
+        max_turns=MAX_TURNS_CHAT,
+        **({"session_manager": session_manager} if session_manager else {}),
     )
 
-    # In debug mode, print the system prompt and user message
-    if debug:
-        print(f"\n{'─'*60}")
-        print(f"  SYSTEM PROMPT (first 500 chars):")
-        print(f"{'─'*60}")
-        print(SYSTEM_PROMPT[:500])
-        print(f"  ... ({len(SYSTEM_PROMPT)} chars total)")
-        print(f"{'─'*60}\n")
 
-    return agent
+def _create_workflow_agent(debug: bool = False) -> Agent:
+    """Create the blog search agent for workflow mode.
+
+    Minimal tools: gateway (web search), rss_fetch, web_fetch.
+    No registry_lookup (URLs are pre-resolved).
+    Temperature 0 for determinism.
+    """
+    gateway_client = _get_gateway_mcp_client()
+    model_id = os.environ.get("MODEL_ID", "us.anthropic.claude-sonnet-4-6")
+    model = BedrockModel(model_id=model_id, temperature=0.0)
+
+    system_prompt = load_prompt("workflow_system_prompt").format(
+        event_types=", ".join(EVENT_TYPES),
+    )
+
+    if debug:
+        handler = DebugCallbackHandler()
+        _debug_print_system_prompt("workflow", system_prompt)
+    else:
+        handler = null_callback_handler
+
+    return Agent(
+        name="blog_search_workflow",
+        model=model,
+        tools=[gateway_client, rss_fetch, web_fetch],
+        system_prompt=system_prompt,
+        callback_handler=handler,
+        max_turns=MAX_TURNS_WORKFLOW,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Workflow pipeline
+# ---------------------------------------------------------------------------
+
+def extract_json_from_response(response_text: str) -> dict | None:
+    """Extract JSON object from agent response text.
+
+    Uses balanced-brace counting to find the outermost JSON object that
+    contains "retrieval_diagnostics", avoiding greedy regex issues.
+    """
+    # Try to find JSON in code block first (non-greedy, balanced)
+    code_block = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", response_text, re.DOTALL)
+    if code_block:
+        try:
+            return json.loads(code_block.group(1))
+        except json.JSONDecodeError:
+            pass
+
+    # Find the first '{' and use balanced brace counting
+    start = response_text.find("{")
+    if start != -1:
+        obj = _extract_balanced_json(response_text, start)
+        if obj is not None:
+            return obj
+
+    # Last resort: try the entire response stripped
+    try:
+        return json.loads(response_text.strip())
+    except json.JSONDecodeError:
+        return None
+
+
+def _extract_balanced_json(text: str, start: int) -> dict | None:
+    """Extract a JSON object starting at `start` using balanced brace counting."""
+    depth = 0
+    in_string = False
+    escape_next = False
+
+    for i in range(start, len(text)):
+        c = text[i]
+        if escape_next:
+            escape_next = False
+            continue
+        if c == "\\":
+            if in_string:
+                escape_next = True
+            continue
+        if c == '"' and not escape_next:
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                try:
+                    return json.loads(text[start:i + 1])
+                except json.JSONDecodeError:
+                    return None
+    return None
+
+
+def _filter_by_lookback(results: list[dict], lookback_days: int) -> list[dict]:
+    """Filter results to only include events within the lookback window.
+
+    Events with null/unparseable dates are kept but flagged with date_unverified=True.
+    """
+    if lookback_days == 0:
+        cutoff = date.today()
+    else:
+        cutoff = date.today() - timedelta(days=lookback_days)
+
+    filtered = []
+    for r in results:
+        post_date_str = r.get("blog_post_date")
+        if post_date_str:
+            try:
+                post_date = date.fromisoformat(post_date_str)
+                if post_date >= cutoff:
+                    filtered.append(r)
+            except ValueError:
+                r["date_unverified"] = True
+                filtered.append(r)
+        else:
+            r["date_unverified"] = True
+            filtered.append(r)
+    return filtered
+
+
+def _parse_and_validate_with_retry(
+    agent: Agent,
+    response_text: str,
+    debug: bool = False,
+) -> BlogSearchResponse | dict:
+    """Parse and validate agent response. Re-prompt agent on validation errors.
+
+    Returns a validated BlogSearchResponse on success, or an error dict on failure.
+    The retry only re-prompts the agent for corrected JSON — it does NOT re-execute
+    tool calls (RSS, web search, etc.) since those results are already in context.
+    """
+    for attempt in range(1 + MAX_VALIDATION_RETRIES):
+        parsed = extract_json_from_response(response_text)
+        if not parsed:
+            if attempt < MAX_VALIDATION_RETRIES:
+                logger.warning(
+                    "[VALIDATION] Attempt %d: could not parse JSON, retrying",
+                    attempt + 1,
+                )
+                correction_prompt = (
+                    "Your previous response could not be parsed as valid JSON. "
+                    "DO NOT call any tools. Just return ONLY the JSON object "
+                    "with the exact schema: "
+                    '{"results": [...], "retrieval_diagnostics": {...}}. '
+                    "No markdown, no explanation — just the raw JSON."
+                )
+                result = agent(correction_prompt)
+                response_text = str(result)
+                continue
+            return {
+                "status": "error",
+                "error": "Could not parse structured JSON from agent response",
+                "raw_response": response_text[:2000],
+            }
+
+        validation_result = validate_response(parsed)
+        if isinstance(validation_result, BlogSearchResponse):
+            if attempt > 0:
+                logger.info(
+                    "[VALIDATION] Succeeded on retry attempt %d", attempt
+                )
+            return validation_result
+
+        errors = validation_result
+        if attempt < MAX_VALIDATION_RETRIES:
+            logger.warning(
+                "[VALIDATION] Attempt %d: schema errors: %s",
+                attempt + 1,
+                errors,
+            )
+            error_list = "\n".join(f"  - {e}" for e in errors)
+            correction_prompt = (
+                "Your JSON response has validation errors:\n"
+                f"{error_list}\n\n"
+                "DO NOT call any tools. Just fix these errors and return the "
+                "corrected JSON object. Required fields per result: sport, team, "
+                "event_type, excerpt, summary, source_url, detected_at, "
+                "retrieval_method. "
+                "Return ONLY the corrected JSON — no markdown, no explanation."
+            )
+            if debug:
+                _debug_print_section("VALIDATION RETRY", correction_prompt)
+            result = agent(correction_prompt)
+            response_text = str(result)
+        else:
+            return {
+                "status": "error",
+                "error": f"Output validation failed after {MAX_VALIDATION_RETRIES} retries",
+                "validation_errors": errors,
+                "raw_response": response_text[:2000],
+            }
+
+    return {
+        "status": "error",
+        "error": "Unexpected validation loop exit",
+    }
+
+
+async def run_blog_search_workflow(
+    team: str,
+    sport: str = "NCAA Men's Basketball",
+    events: list[str] | None = None,
+    lookback_days: int = 0,
+    debug: bool = False,
+) -> dict:
+    """Execute the deterministic blog search workflow pipeline.
+
+    Steps:
+    1. Fetch team's blog URLs from DynamoDB registry (plain Python, no LLM).
+    2. Run a focused agent with strict prompt to search RSS + web.
+    3. Post-process: filter results by date window.
+    """
+    if events is None:
+        events = EVENT_TYPES
+    elif "INJURY" not in events:
+        events = ["INJURY"] + list(events)
+
+    if debug:
+        _debug_print_payload({
+            "mode": "workflow",
+            "team": team,
+            "sport": sport,
+            "events": events,
+            "lookback_days": lookback_days,
+        })
+
+    # Step 1: Fetch URLs from registry
+    logger.info("[WORKFLOW] Fetching registry for team=%s", team)
+    registry_data = get_team_urls(team)
+
+    if registry_data.get("error"):
+        return {
+            "status": "error",
+            "mode": "workflow",
+            "team": team,
+            "error": registry_data["error"],
+        }
+
+    blogs = registry_data.get("blogs", [])
+    if not blogs:
+        return {
+            "status": "success",
+            "mode": "workflow",
+            "team": team,
+            "results": [],
+            "retrieval_diagnostics": {
+                "urls_total": 0,
+                "error": "No accessible URLs found in registry",
+            },
+        }
+
+    if debug:
+        _debug_print_registry_urls(team, blogs)
+
+    # Compute date range
+    today = date.today()
+    if lookback_days == 0:
+        date_start = today.isoformat()
+    else:
+        date_start = (today - timedelta(days=lookback_days)).isoformat()
+    date_end = today.isoformat()
+
+    # Step 2: Run the workflow agent
+    logger.info(
+        "[WORKFLOW] Running agent: team=%s urls=%d date_range=%s to %s",
+        team, len(blogs), date_start, date_end,
+    )
+
+    user_message = _build_workflow_message(team, sport, events, blogs, date_start, date_end)
+
+    if debug:
+        _debug_print_user_message(user_message)
+
+    try:
+        agent = _create_workflow_agent(debug=debug)
+        result = agent(user_message)
+        response_text = str(result)
+    except Exception as e:
+        logger.exception("[WORKFLOW] Agent execution failed for team=%s", team)
+        return {
+            "status": "error",
+            "mode": "workflow",
+            "team": team,
+            "error": f"Agent execution failed: {e}",
+        }
+
+    # Step 3: Parse, validate, and retry if needed
+    validated = _parse_and_validate_with_retry(agent, response_text, debug=debug)
+    if isinstance(validated, dict):
+        validated["team"] = team
+        validated["mode"] = "workflow"
+        return validated
+
+    # Post-process: filter by date window
+    raw_results = [r.model_dump() for r in validated.results]
+    filtered_results = _filter_by_lookback(raw_results, lookback_days)
+
+    return {
+        "status": "success",
+        "mode": "workflow",
+        "team": team,
+        "sport": sport,
+        "lookback_days": lookback_days,
+        "date_range": {"start": date_start, "end": date_end},
+        "results": filtered_results,
+        "results_before_filter": len(raw_results),
+        "results_after_filter": len(filtered_results),
+        "retrieval_diagnostics": validated.retrieval_diagnostics.model_dump(),
+        "registry_stats": {
+            "total_urls": registry_data["total_urls"],
+            "searchable_urls": registry_data["searchable_urls"],
+            "urls_with_rss": registry_data["urls_with_rss"],
+        },
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -381,35 +687,65 @@ try:
 
     @app.entrypoint
     async def invocations(payload: dict, context: RequestContext):
-        """Main entrypoint — called by AgentCore Runtime on each request.
+        """Main entrypoint — routes to chat or workflow mode based on payload.
 
-        Expected payload:
-        {
-            "prompt": "Find latest injury news for Colgate Raiders",
-            "team": "Colgate Raiders",          # optional if in prompt
-            "sport": "NCAA Men's Basketball",   # optional
-            "events": ["injury"],               # optional, defaults to all
-            "urls": [...]                       # optional, reads from registry if omitted
-        }
+        mode="chat" (default): Conversational agent with all tools.
+        mode="workflow": Deterministic pipeline for batch/scheduled runs.
+        Pass "debug": true in payload to print full trace.
         """
-        prompt = payload.get("prompt")
-        if not prompt and not payload.get("team"):
-            yield {
-                "status": "error",
-                "error": "Provide either 'prompt' or 'team' in the payload.",
-            }
-            return
+        mode = payload.get("mode", "chat")
+        debug = payload.get("debug", False)
 
-        try:
-            agent = create_blog_search_agent(debug=False)
-            user_message = build_user_message(payload)
+        if mode == "workflow":
+            team = payload.get("team")
+            if not team:
+                yield {"status": "error", "error": "Workflow mode requires 'team' field"}
+                return
 
-            async for event in agent.stream_async(user_message):
-                yield json.loads(json.dumps(dict(event), default=str))
+            result = await run_blog_search_workflow(
+                team=team,
+                sport=payload.get("sport", "NCAA Men's Basketball"),
+                events=payload.get("events"),
+                lookback_days=payload.get("lookback_days", 0),
+                debug=debug,
+            )
+            yield result
 
-        except Exception as e:
-            logger.exception("Blog search agent failed")
-            yield {"status": "error", "error": str(e)}
+        else:
+            # Chat mode (default) — accepts free-form natural language
+            message = payload.get("message") or payload.get("prompt", "")
+            if not message:
+                yield {
+                    "status": "error",
+                    "error": "Chat mode requires a 'message' field.",
+                }
+                return
+
+            session_id = payload.get("runtimeSessionId")
+            try:
+                user_id = _extract_user_id(context)
+            except Exception:
+                user_id = None
+
+            try:
+                if debug:
+                    _debug_print_payload(payload)
+
+                agent = create_chat_agent(
+                    user_id=user_id,
+                    session_id=session_id,
+                    debug=debug,
+                )
+
+                if debug:
+                    _debug_print_user_message(message)
+
+                async for event in agent.stream_async(message):
+                    yield json.loads(json.dumps(dict(event), default=str))
+
+            except Exception as e:
+                logger.exception("Blog search agent failed")
+                yield {"status": "error", "error": str(e)}
 
     if __name__ == "__main__":
         app.run()

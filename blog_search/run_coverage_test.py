@@ -1,109 +1,44 @@
-"""Coverage Test: Measure how well web search tools index our discovered blog URLs.
-
-This script:
-  1. Reads team blog URLs from the DynamoDB registry
-  2. Invokes the blog search agent for each team
-  3. Captures structured output including retrieval diagnostics
-  4. Computes coverage metrics per team and overall
-  5. Saves results to output/ as JSON
+"""Coverage Test: Measure how well the blog search agent extracts events.
 
 Usage:
-  # Run for test teams defined in config:
+  # Chat mode (default teams):
   AWS_PROFILE=<profile> uv run python run_coverage_test.py
 
-  # Run for specific teams:
-  AWS_PROFILE=<profile> uv run python run_coverage_test.py --teams "Colgate Raiders" "Chicago State Cougars"
+  # Workflow mode with lookback:
+  AWS_PROFILE=<profile> uv run python run_coverage_test.py --mode workflow --lookback-days 7
 
-  # Debug mode (streams agent reasoning):
+  # Specific teams and sport:
+  AWS_PROFILE=<profile> uv run python run_coverage_test.py --teams "Colgate Raiders" "Duke Blue Devils"
+
+  # Debug mode (full trace: payload, prompts, tool calls, registry URLs):
   AWS_PROFILE=<profile> uv run python run_coverage_test.py --debug
 
-  # Limit URLs per team (faster test):
+  # Limit URLs per team (chat mode only):
   AWS_PROFILE=<profile> uv run python run_coverage_test.py --max-urls 3
 """
 
 import argparse
 import json
 import logging
-import os
-import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-import yaml
-
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from blog_search_agent import create_blog_search_agent, build_user_message, SUPPORTED_EVENTS
-from tools.registry_reader import get_team_urls
+from blog_search_agent import (
+    create_chat_agent,
+    run_blog_search_workflow,
+    extract_json_from_response,
+    _debug_print_user_message,
+)
+from models import EVENT_TYPES
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_TEAMS = ["Chicago State Cougars", "Colgate Raiders"]
+DEFAULT_SPORT = "NCAA Men's Basketball"
 
-def _load_config() -> dict:
-    """Load the blog_search config YAML."""
-    config_path = Path(__file__).parent / "config" / "blog_search.yaml"
-    with open(config_path) as f:
-        return yaml.safe_load(f)
-
-
-def _build_payload(team: str, sport: str, blogs: list[dict], events: list[str] = None) -> dict:
-    """Build the structured payload for the blog search agent.
-
-    Args:
-        team: Team name.
-        sport: Sport name.
-        blogs: List of blog dicts from registry (with url, rss_url fields).
-        events: Event types to detect. Defaults to all supported events.
-
-    Returns:
-        Structured payload dict matching the agent's expected input.
-    """
-    if events is None:
-        events = SUPPORTED_EVENTS
-
-    urls = []
-    for blog in blogs:
-        urls.append({
-            "url": blog.get("url", ""),
-            "rss_url": blog.get("rss_url") or None,
-        })
-
-    return {
-        "team": team,
-        "sport": sport,
-        "events": events,
-        "urls": urls,
-    }
-
-
-def _extract_json_from_response(response_text: str) -> dict | None:
-    """Extract JSON object from agent response text.
-
-    The agent should return JSON in a code block, but may include
-    surrounding text. This extracts the JSON object.
-    """
-    # Try to find JSON in code block first
-    json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", response_text, re.DOTALL)
-    if json_match:
-        try:
-            return json.loads(json_match.group(1))
-        except json.JSONDecodeError:
-            pass
-
-    # Try to find a raw JSON object
-    json_match = re.search(r"\{[\s\S]*\"retrieval_diagnostics\"[\s\S]*\}", response_text)
-    if json_match:
-        try:
-            return json.loads(json_match.group(0))
-        except json.JSONDecodeError:
-            pass
-
-    # Last resort: try the entire response
-    try:
-        return json.loads(response_text)
-    except json.JSONDecodeError:
-        return None
 
 
 def _compute_metrics(results: list[dict]) -> dict:
@@ -137,9 +72,9 @@ def _compute_metrics(results: list[dict]) -> dict:
         if result.get("results"):
             any_method_found_events += 1
 
-        # Count by category
+        # Count by event type
         for r in result.get("results", []):
-            cat = r.get("event_category", "unknown")
+            cat = r.get("event_type", r.get("event_category", "unknown"))
             events_by_category[cat] = events_by_category.get(cat, 0) + 1
 
     return {
@@ -177,10 +112,10 @@ def _print_summary(team: str, result: dict) -> None:
     print(f"  ---")
     print(f"  Total events: {len(results_list)}")
 
-    # Group by event_category
+    # Group by event_type
     by_category = {}
     for r in results_list:
-        cat = r.get("event_category", "unknown")
+        cat = r.get("event_type", r.get("event_category", "unknown"))
         by_category.setdefault(cat, []).append(r)
 
     for cat, events in by_category.items():
@@ -198,20 +133,28 @@ def _print_summary(team: str, result: dict) -> None:
 def main():
     parser = argparse.ArgumentParser(description="Blog search indexing coverage test")
     parser.add_argument(
-        "--teams", nargs="+",
-        help="Team names to test (default: from config)",
+        "--teams", nargs="+", default=DEFAULT_TEAMS,
+        help=f"Team names to test (default: {DEFAULT_TEAMS})",
+    )
+    parser.add_argument(
+        "--sport", type=str, default=DEFAULT_SPORT,
+        help=f"Sport name (default: {DEFAULT_SPORT})",
+    )
+    parser.add_argument(
+        "--mode", choices=["chat", "workflow"], default="chat",
+        help="Agent mode: 'chat' (default) or 'workflow' (deterministic pipeline)",
+    )
+    parser.add_argument(
+        "--lookback-days", type=int, default=7,
+        help="Days to look back for events in workflow mode (default: 7)",
     )
     parser.add_argument(
         "--max-urls", type=int, default=0,
-        help="Max URLs to test per team (0 = all accessible URLs)",
+        help="Max URLs to test per team (0 = all accessible URLs, chat mode only)",
     )
     parser.add_argument(
         "--debug", action="store_true",
-        help="Stream agent reasoning to stdout",
-    )
-    parser.add_argument(
-        "--config", type=str, default="config/blog_search.yaml",
-        help="Path to config YAML",
+        help="Print full debug trace (payload, prompts, tool calls, registry URLs)",
     )
     args = parser.parse_args()
 
@@ -222,7 +165,7 @@ def main():
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
 
-    # Suppress noisy third-party loggers (raw HTTP streams, auth signatures, etc.)
+    # Suppress noisy third-party loggers
     for noisy_logger in [
         "botocore", "urllib3", "httpcore", "httpx", "asyncio",
         "mcp.client", "strands.tools.mcp", "strands.models",
@@ -231,7 +174,7 @@ def main():
     ]:
         logging.getLogger(noisy_logger).setLevel(logging.WARNING)
 
-    # Also log to file
+    # Log to file
     output_dir = Path(__file__).parent / "output"
     output_dir.mkdir(exist_ok=True)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
@@ -241,114 +184,96 @@ def main():
     file_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
     logging.getLogger().addHandler(file_handler)
 
-    # Load config
-    config = _load_config()
-    sport = config.get("sport", "men's basketball")
-    teams = args.teams or config.get("test_teams", [])
-
-    if not teams:
-        print("ERROR: No teams specified. Use --teams or define test_teams in config.")
-        sys.exit(1)
+    sport = args.sport
+    teams = args.teams
 
     print(f"\n{'#'*70}")
-    print(f"  BLOG SEARCH INDEXING COVERAGE TEST")
-    print(f"  Sport: {config.get('display_name', sport)}")
+    print(f"  BLOG SEARCH COVERAGE TEST")
+    print(f"  Mode:  {args.mode}")
+    print(f"  Sport: {sport}")
     print(f"  Teams: {', '.join(teams)}")
+    if args.mode == "workflow":
+        print(f"  Lookback: {args.lookback_days} days")
     print(f"  Time:  {datetime.now(timezone.utc).isoformat()}")
     print(f"{'#'*70}\n")
 
-    # Create the agent once (reuse across teams)
-    print("Initializing blog search agent...")
-    agent = create_blog_search_agent(debug=args.debug)
-    print("Agent ready.\n")
-
     all_results = []
 
-    for team in teams:
-        print(f"\n--- Processing: {team} ---")
+    if args.mode == "workflow":
+        # Workflow mode: use the deterministic pipeline
+        import asyncio
 
-        # Read URLs from registry
-        registry_data = get_team_urls(team)
-        if registry_data.get("error"):
-            print(f"  ⚠️  Registry error: {registry_data['error']}")
-            all_results.append({
-                "team": team,
-                "sport": sport,
-                "results": [],
-                "retrieval_diagnostics": {"error": registry_data["error"]},
-                "registry_stats": registry_data,
-            })
-            continue
+        for team in teams:
+            print(f"\n--- Processing (workflow): {team} ---")
+            print(f"  Running workflow pipeline (lookback_days={args.lookback_days})...")
 
-        blogs = registry_data.get("blogs", [])
-        if not blogs:
-            print(f"  ⚠️  No accessible URLs found in registry for {team}")
-            all_results.append({
-                "team": team,
-                "sport": sport,
-                "results": [],
-                "retrieval_diagnostics": {"urls_searched": 0, "error": "No accessible URLs"},
-                "registry_stats": registry_data,
-            })
-            continue
+            try:
+                result = asyncio.run(run_blog_search_workflow(
+                    team=team,
+                    sport=sport,
+                    lookback_days=args.lookback_days,
+                    debug=args.debug,
+                ))
 
-        # Optionally limit URLs
-        if args.max_urls > 0:
-            blogs = blogs[:args.max_urls]
+                if result.get("status") == "error":
+                    print(f"  ⚠️  Workflow error: {result.get('error')}")
+                    all_results.append(result)
+                else:
+                    all_results.append(result)
+                    _print_summary(team, result)
 
-        print(f"  Found {len(blogs)} searchable URLs ({registry_data['urls_with_rss']} with RSS)")
-        for b in blogs:
-            rss_note = " [RSS]" if b.get("rss_url") else ""
-            print(f"    • {b['url'][:70]}{rss_note}")
-
-        # Build payload and user message
-        payload = _build_payload(team, sport, blogs)
-        user_message = build_user_message(payload)
-
-        if args.debug:
-            print(f"\n  ┌─ USER MESSAGE TO AGENT ─────────────────────────")
-            for line in user_message.strip().split("\n"):
-                print(f"  │ {line}")
-            print(f"  └─────────────────────────────────────────────────")
-
-        print(f"\n  Running agent (this may take 30-60 seconds)...")
-
-        try:
-            result = agent(user_message)
-            response_text = str(result)
-
-            # Parse the structured output
-            parsed = _extract_json_from_response(response_text)
-            if parsed:
-                parsed["registry_stats"] = {
-                    "total_urls": registry_data["total_urls"],
-                    "searchable_urls": registry_data["searchable_urls"],
-                    "urls_with_rss": registry_data["urls_with_rss"],
-                }
-                all_results.append(parsed)
-                _print_summary(team, parsed)
-            else:
-                print(f"  ⚠️  Could not parse structured JSON from agent response.")
-                print(f"  Raw response (first 500 chars): {response_text[:500]}")
+            except Exception as e:
+                print(f"  ❌ Workflow error: {e}")
+                logger.exception("Workflow failed for team: %s", team)
                 all_results.append({
                     "team": team,
                     "sport": sport,
                     "results": [],
-                    "retrieval_diagnostics": {"parse_error": True},
-                    "raw_response": response_text[:2000],
-                    "registry_stats": registry_data,
+                    "retrieval_diagnostics": {"workflow_error": str(e)},
                 })
 
-        except Exception as e:
-            print(f"  ❌ Agent error: {e}")
-            logger.exception("Agent invocation failed for team: %s", team)
-            all_results.append({
-                "team": team,
-                "sport": sport,
-                "results": [],
-                "retrieval_diagnostics": {"agent_error": str(e)},
-                "registry_stats": registry_data,
-            })
+    else:
+        # Chat mode: fresh agent per team to avoid context bleed
+        for team in teams:
+            print(f"\n--- Processing (chat): {team} ---")
+
+            message = f"Find all recent {sport} events for {team}. Look for injuries, roster changes, schedule changes, venue changes, and cancellations."
+
+            if args.debug:
+                _debug_print_user_message(message)
+
+            print(f"\n  Running agent (this may take 30-60 seconds)...")
+
+            try:
+                agent = create_chat_agent(debug=args.debug)
+                result = agent(message)
+                response_text = str(result)
+
+                # Try to parse structured output (agent may respond conversationally)
+                parsed = extract_json_from_response(response_text)
+                if parsed:
+                    all_results.append(parsed)
+                    _print_summary(team, parsed)
+                else:
+                    # Conversational response — store raw text
+                    print(f"  Agent response (first 500 chars): {response_text[:500]}")
+                    all_results.append({
+                        "team": team,
+                        "sport": sport,
+                        "results": [],
+                        "retrieval_diagnostics": {},
+                        "raw_response": response_text[:2000],
+                    })
+
+            except Exception as e:
+                print(f"  ❌ Agent error: {e}")
+                logger.exception("Agent invocation failed for team: %s", team)
+                all_results.append({
+                    "team": team,
+                    "sport": sport,
+                    "results": [],
+                    "retrieval_diagnostics": {"agent_error": str(e)},
+                })
 
     # Compute and display aggregate metrics
     print(f"\n\n{'#'*70}")
@@ -364,9 +289,9 @@ def main():
     output_data = {
         "test_metadata": {
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "sport": config.get("display_name"),
+            "mode": args.mode,
+            "sport": sport,
             "teams_tested": teams,
-            "search_tool": "agentcore_gateway_web_search",
         },
         "results": all_results,
         "metrics": metrics,

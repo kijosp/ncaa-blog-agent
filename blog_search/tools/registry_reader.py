@@ -11,6 +11,7 @@ from typing import Any
 
 import boto3
 from dotenv import load_dotenv
+from strands import tool
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +119,23 @@ def get_team_urls(team_name: str) -> dict[str, Any]:
             "urls_with_rss": 0,
             "error": str(e),
         }
+
+
+@tool
+def registry_lookup(team_name: str) -> dict[str, Any]:
+    """Look up a team's discovered fan blog URLs from the DynamoDB registry.
+
+    Use this tool when a user asks about a team but does not provide specific URLs.
+    Returns the team's searchable blog URLs (accessible and recently active) along
+    with their RSS feed URLs if available.
+
+    Args:
+        team_name: The team name (e.g., "Colgate Raiders", "Duke Blue Devils").
+
+    Returns:
+        A dict with team name, list of blog dicts (url, rss_url), and counts.
+    """
+    return get_team_urls(team_name)
 
 
 def get_all_teams() -> list[str]:
