@@ -55,32 +55,14 @@ def load_config(config_path: str) -> dict[str, Any]:
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-def _get_registry_table():
-    """Get DynamoDB Table resource for the blog registry."""
-    import boto3
-    table_name = os.environ.get("REGISTRY_TABLE", "blog-discovery-registry")
-    dynamodb = boto3.resource("dynamodb", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
-    return dynamodb.Table(table_name)
-
-
-def generate_team_id(team_name: str) -> str:
-    """Generate a stable team ID from a team name.
-
-    Lowercase, remove spaces and commas. This produces a deterministic ID
-    regardless of formatting variations.
-
-    Examples:
-        "Arizona Wildcats" → "arizonawildcats"
-        "Central Connecticut Blue Devils" → "centralconnecticutbluedevils"
-        "Texas A&M Aggies" → "texasa&maggies"
-
-    Args:
-        team_name: Full team name with mascot.
-
-    Returns:
-        Normalized team ID string.
-    """
-    return team_name.lower().replace(" ", "").replace(",", "")
+from registry_client import (
+    generate_team_id,
+    get_table as _get_registry_table,
+    make_key,
+    scan_all as _scan_all_items,
+    put_item as _put_item,
+    convert_decimals as _convert_decimals,
+)
 
 
 def load_registry() -> dict[str, Any]:
@@ -89,17 +71,8 @@ def load_registry() -> dict[str, Any]:
     Returns:
         Dict mapping team names to their blog list + metadata.
     """
-    table = _get_registry_table()
-    registry = {}
-    response = table.scan()
-    for item in response.get("Items", []):
-        registry[item["team"]] = item
-    # Handle pagination
-    while "LastEvaluatedKey" in response:
-        response = table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
-        for item in response.get("Items", []):
-            registry[item["team"]] = item
-    return registry
+    items = _scan_all_items()
+    return {item["team"]: item for item in items if "team" in item}
 
 
 def build_team_id_index(registry: dict) -> dict[str, str]:
@@ -121,18 +94,14 @@ def save_team_to_registry(team_name: str, entry: dict[str, Any]) -> None:
     """Save a single team entry to DynamoDB.
 
     Args:
-        team_name: Team name (partition key).
+        team_name: Team name.
         entry: Dict with sport, team, conference, blogs.
     """
-    table = _get_registry_table()
-    item = {**entry, "team": team_name, "team_id": generate_team_id(team_name)}
-    # Convert any None values to empty strings for DynamoDB
-    for blog in item.get("blogs", []):
-        for k, v in list(blog.items()):
-            if v is None:
-                blog[k] = ""
-    table.put_item(Item=item)
-    logger.info("Saved to DynamoDB: %s (id: %s)", team_name, generate_team_id(team_name))
+    team_id = generate_team_id(team_name)
+    sport = entry.get("sport", "")
+    item = {**entry, "team": team_name, "team_id": team_id, "sport": sport}
+    _put_item(item)
+    logger.info("Saved to DynamoDB: %s (team_id: %s, sport: %s)", team_name, team_id, sport)
 
 
 def _parse_json_array(response_text: str) -> list | None:

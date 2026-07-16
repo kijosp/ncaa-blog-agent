@@ -16,51 +16,30 @@ from socketserver import ThreadingMixIn
 from pathlib import Path
 from urllib.parse import unquote
 
-import boto3
 from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
-TABLE_NAME = os.environ.get("REGISTRY_TABLE", "blog-discovery-registry")
-REGION = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+from registry_client import (
+    get_item as _get_item,
+    make_key as _make_key,
+    scan_all as _scan_all,
+    update_blogs as _update_blogs,
+)
+
 PORT = int(os.environ.get("API_PORT", "8080"))
 
 
-def _get_table():
-    dynamodb = boto3.resource("dynamodb", region_name=REGION)
-    return dynamodb.Table(TABLE_NAME)
-
-
 def get_registry() -> dict:
-    table = _get_table()
-    registry = {}
-    response = table.scan()
-    for item in response.get("Items", []):
-        registry[item["team"]] = _convert_decimals(item)
-    while "LastEvaluatedKey" in response:
-        response = table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
-        for item in response.get("Items", []):
-            registry[item["team"]] = _convert_decimals(item)
-    return registry
-
-
-def _convert_decimals(obj):
-    from decimal import Decimal
-    if isinstance(obj, list):
-        return [_convert_decimals(i) for i in obj]
-    if isinstance(obj, dict):
-        return {k: _convert_decimals(v) for k, v in obj.items()}
-    if isinstance(obj, Decimal):
-        return int(obj) if obj == int(obj) else float(obj)
-    return obj
+    """Load full registry, keyed by team name."""
+    items = _scan_all()
+    return {item["team"]: item for item in items if "team" in item}
 
 
 def toggle_bookmark(team: str, url: str, bookmarked: bool) -> dict:
     """Toggle bookmark status for a URL within a team's blog list."""
-    table = _get_table()
-    response = table.get_item(Key={"team": team})
-    item = response.get("Item")
+    item = _get_item(team)
     if not item:
         return {"error": "Team not found"}
 
@@ -76,25 +55,13 @@ def toggle_bookmark(team: str, url: str, bookmarked: bool) -> dict:
     if not found:
         return {"error": "URL not found for this team"}
 
-    # Clean None values for DynamoDB
-    for blog in blogs:
-        for k, v in list(blog.items()):
-            if v is None:
-                blog[k] = ""
-
-    table.update_item(
-        Key={"team": team},
-        UpdateExpression="SET blogs = :b",
-        ExpressionAttributeValues={":b": blogs},
-    )
+    _update_blogs(team, blogs)
     return {"success": True, "bookmarked": bookmarked}
 
 
 def add_url(team: str, url: str) -> dict:
     """Add a custom URL to a team immediately. Checks run async in background."""
-    table = _get_table()
-    response = table.get_item(Key={"team": team})
-    item = response.get("Item")
+    item = _get_item(team)
 
     if not item:
         return {"error": "Team not found"}
@@ -106,14 +73,7 @@ def add_url(team: str, url: str) -> dict:
         if blog.get("url") == url:
             blog["bookmarked"] = True
             blog["bookmarked_at"] = datetime.now(timezone.utc).isoformat()
-            for k, v in list(blog.items()):
-                if v is None:
-                    blog[k] = ""
-            table.update_item(
-                Key={"team": team},
-                UpdateExpression="SET blogs = :b",
-                ExpressionAttributeValues={":b": blogs},
-            )
+            _update_blogs(team, blogs)
             return {"success": True, "already_exists": True, "message": f"URL already tracked — added to favorites ⭐"}
 
     # Check if URL exists under a different team
@@ -144,15 +104,7 @@ def add_url(team: str, url: str) -> dict:
         "source": "manual",
     }
     blogs.append(new_blog)
-    for blog in blogs:
-        for k, v in list(blog.items()):
-            if v is None:
-                blog[k] = ""
-    table.update_item(
-        Key={"team": team},
-        UpdateExpression="SET blogs = :b",
-        ExpressionAttributeValues={":b": blogs},
-    )
+    _update_blogs(team, blogs)
 
     # Trigger async check in background thread
     import threading
@@ -172,10 +124,7 @@ def _run_checks_async(team: str, url: str):
         if access_result.get("accessible"):
             recency_result = recency_check._tool_func(url=url)
 
-        # Update the blog entry in DynamoDB
-        table = _get_table()
-        response = table.get_item(Key={"team": team})
-        item = response.get("Item")
+        item = _get_item(team)
         if not item:
             return
 
@@ -188,25 +137,14 @@ def _run_checks_async(team: str, url: str):
                 blog["last_post_date"] = recency_result.get("last_post_date") or ""
                 break
 
-        for blog in blogs:
-            for k, v in list(blog.items()):
-                if v is None:
-                    blog[k] = ""
-
-        table.update_item(
-            Key={"team": team},
-            UpdateExpression="SET blogs = :b",
-            ExpressionAttributeValues={":b": blogs},
-        )
+        _update_blogs(team, blogs)
     except Exception as e:
         print(f"[ASYNC CHECK] Error for {url}: {e}")
 
 
 def delete_url(team: str, url: str) -> dict:
     """Delete a URL from a team's blog list."""
-    table = _get_table()
-    response = table.get_item(Key={"team": team})
-    item = response.get("Item")
+    item = _get_item(team)
     if not item:
         return {"error": "Team not found"}
 
@@ -217,24 +155,13 @@ def delete_url(team: str, url: str) -> dict:
     if len(blogs) == original_len:
         return {"error": "URL not found for this team"}
 
-    for blog in blogs:
-        for k, v in list(blog.items()):
-            if v is None:
-                blog[k] = ""
-
-    table.update_item(
-        Key={"team": team},
-        UpdateExpression="SET blogs = :b",
-        ExpressionAttributeValues={":b": blogs},
-    )
+    _update_blogs(team, blogs)
     return {"success": True}
 
 
 def _force_add(team: str, url: str) -> dict:
     """Force-add a URL to team, skipping conflict check."""
-    table = _get_table()
-    response = table.get_item(Key={"team": team})
-    item = response.get("Item")
+    item = _get_item(team)
     if not item:
         return {"error": "Team not found"}
 
@@ -252,15 +179,7 @@ def _force_add(team: str, url: str) -> dict:
         "source": "manual",
     }
     blogs.append(new_blog)
-    for blog in blogs:
-        for k, v in list(blog.items()):
-            if v is None:
-                blog[k] = ""
-    table.update_item(
-        Key={"team": team},
-        UpdateExpression="SET blogs = :b",
-        ExpressionAttributeValues={":b": blogs},
-    )
+    _update_blogs(team, blogs)
     import threading
     threading.Thread(target=_run_checks_async, args=(team, url), daemon=True).start()
     return {"success": True, "message": "✅ URL added — accessibility check running in background"}
