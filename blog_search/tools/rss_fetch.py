@@ -1,13 +1,14 @@
-"""Tool: fetch and parse RSS/Atom feeds for blog content.
+"""Tool: fetch and parse RSS/Atom feeds, then extract events via LLM.
 
 Uses feedparser for robust handling of all feed formats:
   - RSS 1.0 (RDF), RSS 2.0, Atom
   - Handles malformed XML, CDATA, namespace quirks
   - JSON Feed support
 
-Returns all entries unfiltered — the agent decides what's relevant.
+After parsing, calls llm_extractor to detect events using a lightweight model.
 """
 
+import asyncio
 import logging
 import re
 from typing import Any
@@ -15,10 +16,12 @@ from typing import Any
 import feedparser
 from strands import tool
 
+from tools.llm_extractor import extract_events
+
 logger = logging.getLogger(__name__)
 
 _TIMEOUT_SECONDS: int = 15
-_MAX_ENTRIES: int = 20  # Return at most this many recent entries
+_MAX_ENTRIES: int = 20
 
 
 def _strip_html(text: str) -> str:
@@ -31,10 +34,7 @@ def _strip_html(text: str) -> str:
 
 
 def _parse_date(entry: dict) -> str | None:
-    """Extract a YYYY-MM-DD date from a feedparser entry.
-
-    Feedparser normalizes dates into a time_struct in published_parsed or updated_parsed.
-    """
+    """Extract a YYYY-MM-DD date from a feedparser entry."""
     for field in ("published_parsed", "updated_parsed"):
         ts = entry.get(field)
         if ts:
@@ -43,7 +43,6 @@ def _parse_date(entry: dict) -> str | None:
             except (AttributeError, TypeError):
                 continue
 
-    # Fallback: try to extract date from the raw string
     for field in ("published", "updated"):
         raw = entry.get(field, "")
         if raw:
@@ -54,58 +53,65 @@ def _parse_date(entry: dict) -> str | None:
     return None
 
 
-@tool
-def rss_fetch(rss_url: str) -> dict[str, Any]:
-    """Fetch an RSS/Atom feed and return all entries with clean parsed content.
+def _parse_feed(rss_url: str) -> dict:
+    """Synchronous feed parsing (runs in thread)."""
+    return feedparser.parse(
+        rss_url,
+        agent="Mozilla/5.0 (compatible; BlogSearchBot/1.0)",
+    )
 
-    Handles RSS 1.0, RSS 2.0, Atom, and even malformed feeds.
-    Returns title, link, date, and description for each entry — no filtering applied.
+
+@tool
+async def rss_fetch(
+    rss_url: str,
+    team: str = "",
+    date_start: str = "",
+    date_end: str = "",
+    event_types: str = "",
+    sport: str = "NCAA Men's Basketball",
+) -> dict[str, Any]:
+    """Fetch an RSS/Atom feed and extract events using LLM.
+
+    Parses the feed, then uses a lightweight model to detect sports events
+    matching the specified types and date range.
 
     Args:
         rss_url: The full URL of the RSS or Atom feed.
+        team: Team name to filter events for (e.g. "Colgate Raiders").
+        date_start: Start of date range (YYYY-MM-DD). Events before this are excluded.
+        date_end: End of date range (YYYY-MM-DD). Events after this are excluded.
+        event_types: Comma-separated event types to detect (e.g. "INJURY,ROSTER").
+        sport: Sport scope (default: "NCAA Men's Basketball").
 
     Returns:
         A dict with keys:
-          - rss_url: the feed URL fetched
-          - entries: list of entry dicts (title, link, date, description)
-          - total_entries: number of entries returned
-          - most_recent_date: date of the newest entry (YYYY-MM-DD or null)
-          - feed_title: title of the feed itself (e.g., "The Colgate Maroon-News")
-          - error: str or None
+          - source: the feed URL fetched
+          - events: list of extracted event dicts
+          - extraction_error: str or None
+          - error: str or None (feed-level errors)
     """
     try:
-        feed = feedparser.parse(
-            rss_url,
-            agent="Mozilla/5.0 (compatible; BlogSearchBot/1.0)",
-        )
+        feed = await asyncio.to_thread(_parse_feed, rss_url)
 
-        # Check for HTTP errors
         if hasattr(feed, "status") and feed.status and feed.status >= 400:
             error_msg = f"HTTP {feed.status}"
             logger.warning("[RSS_FETCH] url=%s error=%s", rss_url, error_msg)
             return {
-                "rss_url": rss_url,
-                "entries": [],
-                "total_entries": 0,
-                "most_recent_date": None,
-                "feed_title": None,
+                "source": rss_url,
+                "events": [],
+                "extraction_error": None,
                 "error": error_msg,
             }
 
-        # Check for parse errors (bozo flag)
         if feed.bozo and not feed.entries:
             error_msg = str(feed.bozo_exception) if feed.bozo_exception else "Feed parse error"
             logger.warning("[RSS_FETCH] url=%s bozo_error=%s", rss_url, error_msg)
             return {
-                "rss_url": rss_url,
-                "entries": [],
-                "total_entries": 0,
-                "most_recent_date": None,
-                "feed_title": None,
+                "source": rss_url,
+                "events": [],
+                "extraction_error": None,
                 "error": error_msg,
             }
-
-        feed_title = feed.feed.get("title", "").strip() if feed.feed else None
 
         entries = []
         for entry in feed.entries[:_MAX_ENTRIES]:
@@ -113,12 +119,10 @@ def rss_fetch(rss_url: str) -> dict[str, Any]:
             link = entry.get("link", "").strip()
             date = _parse_date(entry)
 
-            # Get description: prefer summary, fall back to content
             description = ""
             if entry.get("summary"):
                 description = _strip_html(entry.summary)[:1000]
             elif entry.get("content"):
-                # content is a list of dicts with 'value' key
                 for c in entry.content:
                     if c.get("value"):
                         description = _strip_html(c["value"])[:1000]
@@ -131,7 +135,6 @@ def rss_fetch(rss_url: str) -> dict[str, Any]:
                 "description": description,
             })
 
-        # Find most recent date
         most_recent = None
         for e in entries:
             if e.get("date"):
@@ -139,26 +142,56 @@ def rss_fetch(rss_url: str) -> dict[str, Any]:
                     most_recent = e["date"]
 
         logger.info(
-            "[RSS_FETCH] url=%s feed_title=%s entries=%d most_recent=%s",
-            rss_url, feed_title, len(entries), most_recent,
+            "[RSS_FETCH] url=%s entries=%d most_recent=%s",
+            rss_url, len(entries), most_recent,
+        )
+
+        # If no team provided, skip LLM extraction (backward compat)
+        if not team:
+            return {
+                "source": rss_url,
+                "events": [],
+                "extraction_error": "No team provided, skipping extraction",
+                "error": None,
+            }
+
+        # Format entries as text for LLM extraction
+        lines = []
+        for i, e in enumerate(entries, 1):
+            lines.append(f"Entry {i}:")
+            lines.append(f"  Title: {e['title']}")
+            lines.append(f"  Link: {e['link']}")
+            lines.append(f"  Date: {e['date'] or 'unknown'}")
+            lines.append(f"  Description: {e['description']}")
+            lines.append("")
+        formatted_text = "\n".join(lines)
+
+        # Parse event_types string to list
+        types_list = [t.strip() for t in event_types.split(",") if t.strip()] if event_types else []
+
+        result = await extract_events(
+            content=formatted_text,
+            source_url=rss_url,
+            retrieval_method="rss",
+            team=team,
+            sport=sport,
+            event_types=types_list,
+            date_start=date_start,
+            date_end=date_end,
         )
 
         return {
-            "rss_url": rss_url,
-            "entries": entries,
-            "total_entries": len(entries),
-            "most_recent_date": most_recent,
-            "feed_title": feed_title,
+            "source": rss_url,
+            "events": result["events"],
+            "extraction_error": result["extraction_error"],
             "error": None,
         }
 
     except Exception as e:
         logger.warning("[RSS_FETCH] url=%s error=%s", rss_url, str(e))
         return {
-            "rss_url": rss_url,
-            "entries": [],
-            "total_entries": 0,
-            "most_recent_date": None,
-            "feed_title": None,
+            "source": rss_url,
+            "events": [],
+            "extraction_error": None,
             "error": str(e),
         }

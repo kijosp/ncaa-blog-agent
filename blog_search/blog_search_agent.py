@@ -29,6 +29,7 @@ Deployed as an AgentCore Runtime agent. Supports two modes:
 }
 """
 
+import asyncio
 import base64
 import json
 import logging
@@ -39,10 +40,6 @@ from functools import lru_cache
 from urllib.parse import urlparse
 
 import requests as http_requests
-from bedrock_agentcore.memory.integrations.strands.config import AgentCoreMemoryConfig
-from bedrock_agentcore.memory.integrations.strands.session_manager import (
-    AgentCoreMemorySessionManager,
-)
 from dotenv import load_dotenv
 from mcp.client.streamable_http import streamablehttp_client
 from strands import Agent
@@ -50,7 +47,7 @@ from strands.handlers.callback_handler import null_callback_handler
 from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
 
-from models import EVENT_TYPES, BlogSearchResponse, validate_response
+from models import EVENT_TYPES, SPORT_SCOPE, BlogSearchResponse, validate_response
 from prompts import load_prompt
 from tools.registry_reader import get_team_urls, registry_lookup
 from tools.rss_fetch import rss_fetch
@@ -65,8 +62,6 @@ if not os.path.exists(_env_path):
     _env_path = os.path.join(_this_dir, "..", "discovery", ".env")
 load_dotenv(_env_path)
 
-MAX_TURNS_CHAT = 15
-MAX_TURNS_WORKFLOW = 10
 MAX_VALIDATION_RETRIES = 2
 
 
@@ -285,8 +280,13 @@ def _extract_user_id(context) -> str:
     return user_id
 
 
-def _create_session_manager(user_id: str, session_id: str) -> AgentCoreMemorySessionManager:
+def _create_session_manager(user_id: str, session_id: str):
     """Create AgentCore memory session manager for conversation history."""
+    from bedrock_agentcore.memory.integrations.strands.config import AgentCoreMemoryConfig
+    from bedrock_agentcore.memory.integrations.strands.session_manager import (
+        AgentCoreMemorySessionManager,
+    )
+
     memory_id = os.environ.get("MEMORY_ID")
     if not memory_id:
         raise ValueError("MEMORY_ID environment variable is required")
@@ -330,7 +330,7 @@ def create_chat_agent(
 
     system_prompt = load_prompt("chat_system_prompt").format(
         event_types=", ".join(EVENT_TYPES),
-        current_date=today.isoformat(),
+        sport_scope=SPORT_SCOPE,
         date_range=f"{date_start} to {today.isoformat()}",
     )
 
@@ -353,7 +353,6 @@ def create_chat_agent(
         tools=[gateway_client, rss_fetch, web_fetch, registry_lookup],
         system_prompt=system_prompt,
         callback_handler=handler,
-        max_turns=MAX_TURNS_CHAT,
         **({"session_manager": session_manager} if session_manager else {}),
     )
 
@@ -385,7 +384,6 @@ def _create_workflow_agent(debug: bool = False) -> Agent:
         tools=[gateway_client, rss_fetch, web_fetch],
         system_prompt=system_prompt,
         callback_handler=handler,
-        max_turns=MAX_TURNS_WORKFLOW,
     )
 
 
@@ -565,12 +563,13 @@ async def run_blog_search_workflow(
     lookback_days: int = 0,
     debug: bool = False,
 ) -> dict:
-    """Execute the deterministic blog search workflow pipeline.
+    """Execute the hybrid blog search workflow pipeline.
 
     Steps:
     1. Fetch team's blog URLs from DynamoDB registry (plain Python, no LLM).
-    2. Run a focused agent with strict prompt to search RSS + web.
-    3. Post-process: filter results by date window.
+    2. Direct parallel RSS calls for all RSS URLs (no agent loop needed).
+    3. Agent loop for non-RSS URLs (needs search query reasoning).
+    4. Filter results by date window.
     """
     if events is None:
         events = EVENT_TYPES
@@ -586,7 +585,7 @@ async def run_blog_search_workflow(
             "lookback_days": lookback_days,
         })
 
-    # Step 1: Fetch URLs from registry
+    # Step 1: Fetch URLs from registry (already filtered: accessible + not outdated)
     logger.info("[WORKFLOW] Fetching registry for team=%s", team)
     registry_data = get_team_urls(team)
 
@@ -621,41 +620,81 @@ async def run_blog_search_workflow(
     else:
         date_start = (today - timedelta(days=lookback_days)).isoformat()
     date_end = today.isoformat()
+    event_types_str = ",".join(events)
 
-    # Step 2: Run the workflow agent
+    # Split blogs by RSS availability
+    rss_blogs = [b for b in blogs if b.get("rss_url")]
+    non_rss_blogs = [b for b in blogs if not b.get("rss_url")]
+
     logger.info(
-        "[WORKFLOW] Running agent: team=%s urls=%d date_range=%s to %s",
-        team, len(blogs), date_start, date_end,
+        "[WORKFLOW] Dispatching: %d RSS feeds (direct), %d non-RSS blogs (agent) "
+        "date_range=%s to %s",
+        len(rss_blogs), len(non_rss_blogs), date_start, date_end,
     )
 
-    user_message = _build_workflow_message(team, sport, events, blogs, date_start, date_end)
+    # Step 2: Direct parallel RSS calls (no agent loop)
+    all_events = []
+    rss_feeds_fetched = 0
+    rss_errors = []
 
-    if debug:
-        _debug_print_user_message(user_message)
+    if rss_blogs:
+        rss_tasks = [
+            rss_fetch(
+                rss_url=b["rss_url"],
+                team=team,
+                date_start=date_start,
+                date_end=date_end,
+                event_types=event_types_str,
+                sport=sport,
+            )
+            for b in rss_blogs
+        ]
+        rss_results = await asyncio.gather(*rss_tasks, return_exceptions=True)
 
-    try:
-        agent = _create_workflow_agent(debug=debug)
-        result = agent(user_message)
-        response_text = str(result)
-    except Exception as e:
-        logger.exception("[WORKFLOW] Agent execution failed for team=%s", team)
-        return {
-            "status": "error",
-            "mode": "workflow",
-            "team": team,
-            "error": f"Agent execution failed: {e}",
-        }
+        for result in rss_results:
+            if isinstance(result, Exception):
+                logger.warning("[WORKFLOW] RSS task failed: %s", result)
+                rss_errors.append(str(result))
+                continue
+            rss_feeds_fetched += 1
+            tool_events = result.get("events", [])
+            all_events.extend(tool_events)
+            if result.get("error"):
+                rss_errors.append(result["error"])
 
-    # Step 3: Parse, validate, and retry if needed
-    validated = _parse_and_validate_with_retry(agent, response_text, debug=debug)
-    if isinstance(validated, dict):
-        validated["team"] = team
-        validated["mode"] = "workflow"
-        return validated
+    events_from_rss = len(all_events)
+    logger.info("[WORKFLOW] RSS phase complete: %d events from %d feeds", events_from_rss, rss_feeds_fetched)
 
-    # Post-process: filter by date window
-    raw_results = [r.model_dump() for r in validated.results]
-    filtered_results = _filter_by_lookback(raw_results, lookback_days)
+    # Step 3: Agent loop for non-RSS blogs (needs search query reasoning)
+    web_searches_performed = 0
+    web_fetches_performed = 0
+
+    if non_rss_blogs:
+        try:
+            agent = _create_workflow_agent(debug=debug)
+            message = _build_non_rss_workflow_message(
+                non_rss_blogs, team, sport, events, date_start, date_end,
+            )
+            if debug:
+                _debug_print_user_message(message)
+
+            result = agent(message)
+            response_text = str(result)
+
+            validated = _parse_and_validate_with_retry(agent, response_text, debug=debug)
+            if isinstance(validated, BlogSearchResponse):
+                web_events = [r.model_dump() for r in validated.results]
+                all_events.extend(web_events)
+                diag = validated.retrieval_diagnostics.model_dump()
+                web_searches_performed = diag.get("web_searches_performed", 0)
+                web_fetches_performed = diag.get("web_fetches_performed", 0)
+            elif isinstance(validated, dict) and validated.get("status") == "error":
+                logger.warning("[WORKFLOW] Non-RSS agent failed: %s", validated.get("error"))
+        except Exception as e:
+            logger.exception("[WORKFLOW] Non-RSS agent execution failed for team=%s", team)
+
+    # Step 4: Filter by date (no deduplication — multiple sources = confidence)
+    filtered_results = _filter_by_lookback(all_events, lookback_days)
 
     return {
         "status": "success",
@@ -665,15 +704,52 @@ async def run_blog_search_workflow(
         "lookback_days": lookback_days,
         "date_range": {"start": date_start, "end": date_end},
         "results": filtered_results,
-        "results_before_filter": len(raw_results),
+        "results_before_filter": len(all_events),
         "results_after_filter": len(filtered_results),
-        "retrieval_diagnostics": validated.retrieval_diagnostics.model_dump(),
+        "retrieval_diagnostics": {
+            "urls_total": len(blogs),
+            "urls_with_rss": len(rss_blogs),
+            "urls_without_rss": len(non_rss_blogs),
+            "rss_feeds_fetched": rss_feeds_fetched,
+            "web_searches_performed": web_searches_performed,
+            "web_fetches_performed": web_fetches_performed,
+            "events_found_via_rss": events_from_rss > 0,
+            "events_found_via_web_search": len(all_events) > events_from_rss,
+        },
         "registry_stats": {
             "total_urls": registry_data["total_urls"],
             "searchable_urls": registry_data["searchable_urls"],
             "urls_with_rss": registry_data["urls_with_rss"],
         },
     }
+
+
+def _build_non_rss_workflow_message(
+    non_rss_blogs: list[dict],
+    team: str,
+    sport: str,
+    events: list[str],
+    date_start: str,
+    date_end: str,
+) -> str:
+    """Build user message for the agent handling only non-RSS URLs."""
+    lines = [
+        f"Team: {team}",
+        f"Sport: {sport}",
+        f"Event types to detect: {', '.join(events)}",
+        f"Date range: {date_start} to {date_end}",
+        f"Parameters to pass to web_fetch: team={team}, date_start={date_start}, "
+        f"date_end={date_end}, event_types={','.join(events)}, sport={sport}",
+        "",
+        f"URLs without RSS ({len(non_rss_blogs)}):",
+    ]
+    for b in non_rss_blogs:
+        domain = urlparse(b["url"]).netloc
+        lines.append(f"  - {b['url']} (domain: {domain})")
+    lines.append("")
+    lines.append("NOTE: RSS feeds have already been processed separately. "
+                 "Only handle these non-RSS URLs via web search + web_fetch.")
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
