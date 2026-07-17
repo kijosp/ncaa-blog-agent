@@ -199,7 +199,7 @@ To modify the event types the agent detects, edit the `EVENT_TYPES` list in `mod
 |-------|----------|---------|-------------|
 | `mode` | Yes | — | Must be `"workflow"` |
 | `team` | Yes | — | Team name (e.g. "Colgate Raiders") |
-| `sport` | No | `"NCAA Men's Basketball"` | Sport name |
+| `sport` | No | `SPORT_SCOPE` (`"CBB"`) | Sport identifier (defined in `models.py`) |
 | `events` | No | All `EVENT_TYPES` | Subset of event types to detect |
 | `lookback_hours` | No | `24` | Hours back from current time to search |
 
@@ -207,7 +207,7 @@ To modify the event types the agent detects, edit the `EVENT_TYPES` list in `mod
 {
   "mode": "workflow",
   "team": "Colgate Raiders",
-  "sport": "NCAA Men's Basketball",
+  "sport": "CBB",
   "events": ["INJURY", "ROSTER"],
   "lookback_hours": 24
 }
