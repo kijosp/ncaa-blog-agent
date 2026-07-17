@@ -180,6 +180,12 @@ To modify the event types the agent detects, edit the `EVENT_TYPES` list in `mod
 ## Payload Schema
 
 ### Chat Mode
+
+| Field | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `message` | Yes | — | Natural language query |
+| `runtimeSessionId` | No | — | Session ID for multi-turn memory |
+
 ```json
 {
   "message": "Has there been any injury news for Duke Blue Devils?",
@@ -188,6 +194,15 @@ To modify the event types the agent detects, edit the `EVENT_TYPES` list in `mod
 ```
 
 ### Workflow Mode
+
+| Field | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `mode` | Yes | — | Must be `"workflow"` |
+| `team` | Yes | — | Team name (e.g. "Colgate Raiders") |
+| `sport` | No | `"NCAA Men's Basketball"` | Sport name |
+| `events` | No | All `EVENT_TYPES` | Subset of event types to detect |
+| `lookback_hours` | No | `24` | Hours back from current time to search |
+
 ```json
 {
   "mode": "workflow",
