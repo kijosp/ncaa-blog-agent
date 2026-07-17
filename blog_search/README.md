@@ -4,9 +4,7 @@ Extracts sports events (injuries, roster moves, schedule changes, venue updates,
 
 ## What It Does
 
-The agent searches team-specific fan blogs, RSS feeds, and the web to find actionable events. It uses a two-tier LLM architecture:
-- **Extraction layer** (Nova 2 Lite / Haiku 4.5): Lightweight models inside tools that parse raw content into structured events
-- **Orchestration layer** (Sonnet): The main agent that coordinates tool calls and presents results
+The agent searches team-specific fan blogs, RSS feeds, and the web to find actionable events.
 
 ## Two Modes
 
