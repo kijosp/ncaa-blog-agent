@@ -14,8 +14,11 @@ import boto3
 
 logger = logging.getLogger(__name__)
 
-EXTRACTION_MODEL_ID = os.environ.get(
-    "EXTRACTION_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001"
+RSS_EXTRACTION_MODEL_ID = os.environ.get(
+    "RSS_EXTRACTION_MODEL_ID", "us.amazon.nova-2-lite-v1:0"
+)
+WEB_EXTRACTION_MODEL_ID = os.environ.get(
+    "WEB_EXTRACTION_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 )
 
 _client = None
@@ -74,26 +77,6 @@ Content:
 ---"""
 
 
-def _filter_by_date(events: list[dict], date_start: str, date_end: str) -> list[dict]:
-    """Drop events with blog_post_date outside the date range. Keep null dates."""
-    if not date_start and not date_end:
-        return events
-
-    filtered = []
-    for event in events:
-        post_date = event.get("blog_post_date")
-        if post_date is None or post_date == "null" or post_date == "":
-            filtered.append(event)
-            continue
-        try:
-            if date_start and post_date < date_start:
-                continue
-            if date_end and post_date > date_end:
-                continue
-            filtered.append(event)
-        except (TypeError, ValueError):
-            filtered.append(event)
-    return filtered
 
 
 def _parse_extraction_response(response_text: str) -> dict | None:
@@ -135,6 +118,7 @@ async def extract_events(
     event_types: list[str],
     date_start: str = "",
     date_end: str = "",
+    model_id: str = "",
 ) -> dict:
     """Call the extraction model to extract events from content.
 
@@ -147,6 +131,7 @@ async def extract_events(
         event_types: List of event types to detect.
         date_start: Start of date range (YYYY-MM-DD).
         date_end: End of date range (YYYY-MM-DD).
+        model_id: Bedrock model ID to use. Defaults to WEB_EXTRACTION_MODEL_ID.
 
     Returns:
         {
@@ -155,6 +140,8 @@ async def extract_events(
             "extraction_error": str | None,
         }
     """
+    if not model_id:
+        model_id = WEB_EXTRACTION_MODEL_ID
     detected_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
     prompt = _EXTRACTION_PROMPT.format(
@@ -173,7 +160,7 @@ async def extract_events(
         try:
             response = await asyncio.to_thread(
                 _get_client().converse,
-                modelId=EXTRACTION_MODEL_ID,
+                modelId=model_id,
                 messages=[{"role": "user", "content": [{"text": prompt}]}],
                 inferenceConfig={"temperature": 0.0, "maxTokens": 4096},
             )
@@ -183,16 +170,15 @@ async def extract_events(
 
             if parsed and "events" in parsed:
                 events = parsed["events"]
-                events = _filter_by_date(events, date_start, date_end)
                 logger.info(
                     "[LLM_EXTRACTOR] source=%s events=%d model=%s",
                     source_url[:60],
                     len(events),
-                    EXTRACTION_MODEL_ID,
+                    model_id,
                 )
                 return {
                     "events": events,
-                    "extraction_model": EXTRACTION_MODEL_ID,
+                    "extraction_model": model_id,
                     "extraction_error": None,
                 }
 
@@ -211,7 +197,7 @@ async def extract_events(
             )
             return {
                 "events": [],
-                "extraction_model": EXTRACTION_MODEL_ID,
+                "extraction_model": model_id,
                 "extraction_error": "Model returned invalid JSON after retry",
             }
 
@@ -226,12 +212,12 @@ async def extract_events(
                 continue
             return {
                 "events": [],
-                "extraction_model": EXTRACTION_MODEL_ID,
+                "extraction_model": model_id,
                 "extraction_error": str(e),
             }
 
     return {
         "events": [],
-        "extraction_model": EXTRACTION_MODEL_ID,
+        "extraction_model": model_id,
         "extraction_error": "Unexpected extraction loop exit",
     }

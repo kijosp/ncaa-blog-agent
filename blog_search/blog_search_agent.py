@@ -25,7 +25,7 @@ Deployed as an AgentCore Runtime agent. Supports two modes:
   "team": "Colgate Raiders",                            # REQUIRED
   "sport": "NCAA Men's Basketball",                     # optional
   "events": ["INJURY", "ROSTER"],                       # optional, defaults to all
-  "lookback_days": 7                                    # optional, default 0 (today only)
+  "lookback_hours": 24                                   # optional, default 24 (past day)
 }
 """
 
@@ -35,7 +35,7 @@ import json
 import logging
 import os
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache
 from urllib.parse import urlparse
 
@@ -47,7 +47,7 @@ from strands.handlers.callback_handler import null_callback_handler
 from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
 
-from models import EVENT_TYPES, SPORT_SCOPE, BlogSearchResponse, validate_response
+from models import EVENT_TYPES, SPORT_SCOPE, BlogSearchResponse, EventResult, validate_response
 from prompts import load_prompt
 from tools.registry_reader import get_team_urls, registry_lookup
 from tools.rss_fetch import rss_fetch
@@ -312,6 +312,7 @@ def _create_session_manager(user_id: str, session_id: str):
 def create_chat_agent(
     user_id: str | None = None,
     session_id: str | None = None,
+    lookback_days: int | None = None,
     debug: bool = False,
 ) -> Agent:
     """Create the blog search agent for chat mode.
@@ -319,14 +320,19 @@ def create_chat_agent(
     Has all tools: gateway (web search), rss_fetch, web_fetch, registry_lookup.
     When user_id and session_id are provided, AgentCore memory is attached for
     multi-turn conversation history.
+
+    Args:
+        lookback_days: Number of days to look back for events. Defaults to
+            DEFAULT_LOOKBACK_DAYS env var (7 if not set).
     """
     gateway_client = _get_gateway_mcp_client()
     model_id = os.environ.get("MODEL_ID", "us.anthropic.claude-sonnet-4-6")
     model = BedrockModel(model_id=model_id, temperature=0)
 
     today = date.today()
-    default_lookback = int(os.environ.get("DEFAULT_LOOKBACK_DAYS", "7"))
-    date_start = (today - timedelta(days=default_lookback)).isoformat()
+    if lookback_days is None:
+        lookback_days = int(os.environ.get("DEFAULT_LOOKBACK_DAYS", "7"))
+    date_start = (today - timedelta(days=lookback_days)).isoformat()
 
     system_prompt = load_prompt("chat_system_prompt").format(
         event_types=", ".join(EVENT_TYPES),
@@ -358,11 +364,10 @@ def create_chat_agent(
 
 
 def _create_workflow_agent(debug: bool = False) -> Agent:
-    """Create the blog search agent for workflow mode.
+    """Create the workflow agent for non-RSS URL processing.
 
-    Minimal tools: gateway (web search), rss_fetch, web_fetch.
-    No registry_lookup (URLs are pre-resolved).
-    Temperature 0 for determinism.
+    Only has gateway (web search) + web_fetch. RSS is handled programmatically
+    via asyncio.gather before this agent is invoked.
     """
     gateway_client = _get_gateway_mcp_client()
     model_id = os.environ.get("MODEL_ID", "us.anthropic.claude-sonnet-4-6")
@@ -381,7 +386,7 @@ def _create_workflow_agent(debug: bool = False) -> Agent:
     return Agent(
         name="blog_search_workflow",
         model=model,
-        tools=[gateway_client, rss_fetch, web_fetch],
+        tools=[gateway_client, web_fetch],
         system_prompt=system_prompt,
         callback_handler=handler,
     )
@@ -451,31 +456,6 @@ def _extract_balanced_json(text: str, start: int) -> dict | None:
     return None
 
 
-def _filter_by_lookback(results: list[dict], lookback_days: int) -> list[dict]:
-    """Filter results to only include events within the lookback window.
-
-    Events with null/unparseable dates are kept but flagged with date_unverified=True.
-    """
-    if lookback_days == 0:
-        cutoff = date.today()
-    else:
-        cutoff = date.today() - timedelta(days=lookback_days)
-
-    filtered = []
-    for r in results:
-        post_date_str = r.get("blog_post_date")
-        if post_date_str:
-            try:
-                post_date = date.fromisoformat(post_date_str)
-                if post_date >= cutoff:
-                    filtered.append(r)
-            except ValueError:
-                r["date_unverified"] = True
-                filtered.append(r)
-        else:
-            r["date_unverified"] = True
-            filtered.append(r)
-    return filtered
 
 
 def _parse_and_validate_with_retry(
@@ -560,8 +540,9 @@ async def run_blog_search_workflow(
     team: str,
     sport: str = "NCAA Men's Basketball",
     events: list[str] | None = None,
-    lookback_days: int = 0,
+    lookback_hours: int = 24,
     debug: bool = False,
+    reference_date: str = "",
 ) -> dict:
     """Execute the hybrid blog search workflow pipeline.
 
@@ -569,7 +550,13 @@ async def run_blog_search_workflow(
     1. Fetch team's blog URLs from DynamoDB registry (plain Python, no LLM).
     2. Direct parallel RSS calls for all RSS URLs (no agent loop needed).
     3. Agent loop for non-RSS URLs (needs search query reasoning).
-    4. Filter results by date window.
+    4. Return all events (date filtering is done by the LLM extractor).
+
+    Args:
+        lookback_hours: How many hours back from reference_date to search.
+            Default 24 (past day). Use 0 for today only.
+        reference_date: Override today's date for testing (YYYY-MM-DD).
+            In production this is always empty (uses real date.today()).
     """
     if events is None:
         events = EVENT_TYPES
@@ -582,7 +569,8 @@ async def run_blog_search_workflow(
             "team": team,
             "sport": sport,
             "events": events,
-            "lookback_days": lookback_days,
+            "lookback_hours": lookback_hours,
+            "reference_date": reference_date or "today",
         })
 
     # Step 1: Fetch URLs from registry (already filtered: accessible + not outdated)
@@ -613,13 +601,17 @@ async def run_blog_search_workflow(
     if debug:
         _debug_print_registry_urls(team, blogs)
 
-    # Compute date range
-    today = date.today()
-    if lookback_days == 0:
-        date_start = today.isoformat()
+    # Compute date range (reference_date overrides today for testing)
+    if reference_date:
+        ref = datetime.fromisoformat(reference_date).replace(tzinfo=timezone.utc)
     else:
-        date_start = (today - timedelta(days=lookback_days)).isoformat()
-    date_end = today.isoformat()
+        ref = datetime.now(timezone.utc)
+    date_end = ref.strftime("%Y-%m-%d")
+    if lookback_hours == 0:
+        date_start = date_end
+    else:
+        start_dt = ref - timedelta(hours=lookback_hours)
+        date_start = start_dt.strftime("%Y-%m-%d")
     event_types_str = ",".join(events)
 
     # Split blogs by RSS availability
@@ -657,8 +649,12 @@ async def run_blog_search_workflow(
                 rss_errors.append(str(result))
                 continue
             rss_feeds_fetched += 1
-            tool_events = result.get("events", [])
-            all_events.extend(tool_events)
+            for event in result.get("events", []):
+                try:
+                    validated = EventResult.model_validate(event)
+                    all_events.append(validated.model_dump())
+                except Exception as e:
+                    logger.warning("[WORKFLOW] Dropping malformed RSS event: %s", e)
             if result.get("error"):
                 rss_errors.append(result["error"])
 
@@ -693,19 +689,15 @@ async def run_blog_search_workflow(
         except Exception as e:
             logger.exception("[WORKFLOW] Non-RSS agent execution failed for team=%s", team)
 
-    # Step 4: Filter by date (no deduplication — multiple sources = confidence)
-    filtered_results = _filter_by_lookback(all_events, lookback_days)
-
     return {
         "status": "success",
         "mode": "workflow",
         "team": team,
         "sport": sport,
-        "lookback_days": lookback_days,
+        "lookback_hours": lookback_hours,
         "date_range": {"start": date_start, "end": date_end},
-        "results": filtered_results,
-        "results_before_filter": len(all_events),
-        "results_after_filter": len(filtered_results),
+        "results": all_events,
+        "results_count": len(all_events),
         "retrieval_diagnostics": {
             "urls_total": len(blogs),
             "urls_with_rss": len(rss_blogs),
@@ -782,7 +774,7 @@ try:
                 team=team,
                 sport=payload.get("sport", "NCAA Men's Basketball"),
                 events=payload.get("events"),
-                lookback_days=payload.get("lookback_days", 0),
+                lookback_hours=payload.get("lookback_hours", 24),
                 debug=debug,
             )
             yield result

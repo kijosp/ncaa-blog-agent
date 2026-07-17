@@ -16,7 +16,7 @@ from typing import Any
 import feedparser
 from strands import tool
 
-from tools.llm_extractor import extract_events
+from tools.llm_extractor import extract_events, RSS_EXTRACTION_MODEL_ID
 
 logger = logging.getLogger(__name__)
 
@@ -178,6 +178,7 @@ async def rss_fetch(
             event_types=types_list,
             date_start=date_start,
             date_end=date_end,
+            model_id=RSS_EXTRACTION_MODEL_ID,
         )
 
         return {
