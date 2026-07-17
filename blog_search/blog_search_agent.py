@@ -41,7 +41,7 @@ Deployed as an AgentCore Runtime agent. Supports two modes:
 {
   "mode": "workflow",
   "team": "Colgate Raiders",                            # REQUIRED
-  "sport": "CBB",                                        # optional, defaults to SPORT_SCOPE
+  "sport": "CBB",                                        # optional, defaults to SPORT["id"]
   "events": ["INJURY", "ROSTER"],                       # optional, defaults to all
   "lookback_hours": 24                                   # optional, default 24 (past day)
 }
@@ -65,7 +65,7 @@ from strands.handlers.callback_handler import null_callback_handler
 from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
 
-from models import EVENT_TYPES, SPORT_SCOPE, BlogSearchResponse, EventResult, validate_response
+from models import EVENT_TYPES, SPORT, BlogSearchResponse, EventResult, validate_response
 from prompts import load_prompt
 from tools.registry_reader import get_team_urls, registry_lookup
 from tools.rss_fetch import rss_fetch
@@ -354,7 +354,7 @@ def create_chat_agent(
 
     system_prompt = load_prompt("chat_system_prompt").format(
         event_types=", ".join(EVENT_TYPES),
-        sport_scope=SPORT_SCOPE,
+        sport_scope=SPORT["name"],
         date_range=f"{date_start} to {today.isoformat()}",
     )
 
@@ -556,7 +556,7 @@ def _parse_and_validate_with_retry(
 
 async def run_blog_search_workflow(
     team: str,
-    sport: str = SPORT_SCOPE,
+    sport: str = SPORT["id"],
     events: list[str] | None = None,
     lookback_hours: int = 24,
     debug: bool = False,
@@ -790,7 +790,7 @@ try:
 
             result = await run_blog_search_workflow(
                 team=team,
-                sport=payload.get("sport", SPORT_SCOPE),
+                sport=payload.get("sport", SPORT["id"]),
                 events=payload.get("events"),
                 lookback_hours=payload.get("lookback_hours", 24),
                 debug=debug,

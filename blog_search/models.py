@@ -6,7 +6,10 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-SPORT_SCOPE = "CBB"
+SPORT = {
+    "id": "CBB",
+    "name": "NCAA Men's Basketball",
+}
 
 EVENT_TYPES = [
     "INJURY",
