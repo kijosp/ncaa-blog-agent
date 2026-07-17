@@ -7,9 +7,27 @@ Deployed as an AgentCore Runtime agent. Supports two modes:
    registry_lookup, rss_fetch, web_fetch, and web search tools. Responds
    conversationally with cited sources.
 
-2. **Workflow mode**: Deterministic pipeline for scheduled/batch runs. Fetches team
-   blog URLs from DynamoDB registry, searches RSS + web for events, returns structured
-   JSON. Controlled by `lookback_days` for date filtering.
+2. **Workflow mode**: Hybrid deterministic + agent pipeline for scheduled/batch runs.
+
+## Workflow Mode — Execution Flow:
+
+  Step 1: Registry lookup (plain Python, no LLM)
+    - Fetches team's blog URLs from DynamoDB
+    - Only returns crawlable (accessible=True) + non-outdated URLs
+
+  Step 2: RSS feeds — parallel, no agent loop
+    - All RSS URLs are called concurrently via asyncio.gather
+    - Each rss_fetch: fetches feed → Nova 2 Lite extracts events → returns structured events
+    - Events are validated against EventResult Pydantic schema; malformed ones are dropped
+
+  Step 3: Non-RSS URLs — agent loop (sequential reasoning, parallel tool execution)
+    - A Sonnet agent is created with gateway__WebSearch + web_fetch tools
+    - Agent decides search queries and which URLs to fetch (requires LLM reasoning)
+    - When the agent requests multiple web_fetch calls in one turn, Strands executes
+      them concurrently (ConcurrentToolExecutor)
+    - Each agent "turn" (think → call tools → think) is sequential
+
+  Step 4: Aggregate all events from Steps 2 & 3 and return
 
 ## Payload Schema (input):
 
