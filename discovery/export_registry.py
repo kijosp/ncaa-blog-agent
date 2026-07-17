@@ -10,8 +10,8 @@ DynamoDB table structure:
   - No sort key (single-key table)
 
 Usage:
-    AWS_PROFILE=fanduel uv run python export_registry.py
-    AWS_PROFILE=fanduel uv run python export_registry.py --output my_export.json
+    AWS_PROFILE=your-profile uv run python export_registry.py
+    AWS_PROFILE=your-profile uv run python export_registry.py --output my_export.json
 """
 
 import json

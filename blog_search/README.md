@@ -14,6 +14,8 @@ The agent searches team-specific fan blogs, RSS feeds, and the web to find actio
 
 Conversational agent for interactive use. Accepts natural language questions, searches for events, and responds with cited answers.
 
+**Date range:** Controlled by `lookback_days` (default: 7 days). The agent searches for events from `today - lookback_days` to `today`. Configurable via `DEFAULT_LOOKBACK_DAYS` env var or the `lookback_days` parameter when creating the agent.
+
 **Flow:**
 1. User asks a question (e.g., "Any injury news for Duke Blue Devils?")
 2. Agent calls `registry_lookup` to get the team's blog URLs (crawlable + non-outdated only)
@@ -31,6 +33,17 @@ Conversational agent for interactive use. Accepts natural language questions, se
 ### Workflow Mode
 
 Hybrid deterministic + agent pipeline for scheduled/batch runs. Returns structured JSON.
+
+**Date range:** Controlled by `lookback_hours` (default: 24 hours). Computes a date range from `reference_date - lookback_hours` to `reference_date`. In production, `reference_date` is the current date/time. For testing, you can set it to a past date to validate event detection.
+
+**Event types:** By default, the workflow searches for ALL event types defined in `EVENT_TYPES` (in `models.py`):
+- `INJURY` — player injury reports (always highest priority)
+- `CANCELLATION` — games called off
+- `VENUE_CHANGE` — arena or location updates
+- `SCHEDULE_CHANGE` — game date/time modifications
+- `ROSTER` — transfers, commits, departures, suspensions
+
+You can override this by passing a subset via the `events` parameter (e.g., `events=["INJURY", "ROSTER"]`). `INJURY` is always force-included even if not specified.
 
 **Flow:**
 1. **Registry lookup** (plain Python, no LLM) — fetches team's blog URLs from DynamoDB, filters to crawlable + non-outdated
@@ -60,7 +73,7 @@ uv sync
 Create a `.env` file in `blog_search/` with:
 
 ```env
-AWS_PROFILE=FD
+AWS_PROFILE=your-profile
 AWS_DEFAULT_REGION=us-east-1
 
 # Gateway (AgentCore MCP)
@@ -108,16 +121,19 @@ jupyter notebook test_agent_modes.ipynb
 ```
 
 The notebook has configurable parameters at the top:
-- `CHAT_LOOKBACK_DAYS` — how many days back for chat mode
-- `WORKFLOW_LOOKBACK_HOURS` — how many hours back for workflow mode
-- `WORKFLOW_REFERENCE_DATE` — mock date for testing (empty string = use today)
-- `DEBUG` — enable verbose tool traces
+
+| Parameter | Mode | Default | Description |
+|-----------|------|---------|-------------|
+| `CHAT_LOOKBACK_DAYS` | Chat | 7 | How many days back to search |
+| `WORKFLOW_LOOKBACK_HOURS` | Workflow | 24 | How many hours back from reference date |
+| `WORKFLOW_REFERENCE_DATE` | Workflow | `""` (today) | Set to a past date (e.g. `"2026-07-15"`) for testing |
+| `DEBUG` | Both | `False` | Enable verbose tool traces |
 
 ### Coverage Test (CLI)
 
 ```bash
 cd blog_search
-AWS_PROFILE=FD uv run python run_coverage_test.py --mode workflow --lookback-days 7
+AWS_PROFILE=your-profile uv run python run_coverage_test.py --mode workflow --lookback-days 7
 ```
 
 ### AgentCore Runtime (Production)
@@ -134,7 +150,7 @@ Starts the AgentCore Runtime server. Accepts payloads via the AgentCore invocati
 ```
 blog_search/
   blog_search_agent.py          # Main agent: chat + workflow modes, AgentCore entrypoint
-  models.py                     # Pydantic schemas (EventResult, BlogSearchResponse), constants
+  models.py                     # Pydantic schemas, EVENT_TYPES, SPORT_SCOPE constants
   prompts/
     chat_system_prompt.txt      # Chat mode system prompt
     workflow_system_prompt.txt  # Workflow agent prompt (non-RSS URLs only)
@@ -151,13 +167,17 @@ blog_search/
 
 ## Event Types
 
+Defined in `models.py` as `EVENT_TYPES`:
+
 | Type | Description |
 |------|-------------|
-| `INJURY` | Player injury reports (highest priority) |
+| `INJURY` | Player injury reports (highest priority — always included) |
 | `ROSTER` | Transfers, commits, departures, suspensions |
 | `SCHEDULE_CHANGE` | Game date/time modifications |
 | `VENUE_CHANGE` | Arena or location updates |
 | `CANCELLATION` | Games called off entirely |
+
+To modify the event types the agent detects, edit the `EVENT_TYPES` list in `models.py`.
 
 ## Payload Schema
 

@@ -1,6 +1,6 @@
 """Test script: inspect what gateway__WebSearch actually returns.
 
-Run with: AWS_PROFILE=fanduel uv run python test_web_search_output.py
+Run with: AWS_PROFILE=your-profile uv run python test_web_search_output.py
 """
 
 import asyncio
