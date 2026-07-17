@@ -41,7 +41,7 @@ Deployed as an AgentCore Runtime agent. Supports two modes:
 {
   "mode": "workflow",
   "team": "Colgate Raiders",                            # REQUIRED
-  "sport": "NCAA Men's Basketball",                     # optional
+  "sport": "CBB",                                        # optional, defaults to SPORT_SCOPE
   "events": ["INJURY", "ROSTER"],                       # optional, defaults to all
   "lookback_hours": 24                                   # optional, default 24 (past day)
 }
@@ -556,7 +556,7 @@ def _parse_and_validate_with_retry(
 
 async def run_blog_search_workflow(
     team: str,
-    sport: str = "NCAA Men's Basketball",
+    sport: str = SPORT_SCOPE,
     events: list[str] | None = None,
     lookback_hours: int = 24,
     debug: bool = False,
@@ -790,7 +790,7 @@ try:
 
             result = await run_blog_search_workflow(
                 team=team,
-                sport=payload.get("sport", "NCAA Men's Basketball"),
+                sport=payload.get("sport", SPORT_SCOPE),
                 events=payload.get("events"),
                 lookback_hours=payload.get("lookback_hours", 24),
                 debug=debug,
