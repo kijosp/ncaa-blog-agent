@@ -1,0 +1,234 @@
+<mxfile host="app.diagrams.net" agent="draw.io">
+  <diagram id="blog-search-flow" name="Blog Search Agent">
+    <mxGraphModel dx="1319" dy="574" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;fillColor=none;strokeColor=none;" value="Blog Search Agent — Architecture Flow" vertex="1">
+          <mxGeometry height="40" width="500" x="500" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="3" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#1A237E;fillColor=none;strokeColor=none;" value="CHAT MODE" vertex="1">
+          <mxGeometry height="30" width="200" x="30" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="4" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#555555;fillColor=none;strokeColor=none;" value="Conversational agent · Streaming output · Multi-turn memory&#xa;lookback_days (default: 7) · Date range: today − lookback_days → today" vertex="1">
+          <mxGeometry height="35" width="600" x="30" y="85" as="geometry" />
+        </mxCell>
+        <mxCell id="5" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#E3F2FD;strokeColor=#1565C0;strokeWidth=2;dashed=1;opacity=30;" vertex="1">
+          <mxGeometry height="340" width="1460" x="20" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="6" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#BBDEFB;strokeColor=#1565C0;fontStyle=1;" value="User Message&#xa;(natural language)" vertex="1">
+          <mxGeometry height="60" width="140" x="40" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="7" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#1565C0;strokeColor=#0D47A1;fontColor=#FFFFFF;fontStyle=1;" value="Sonnet Agent&#xa;(Claude Sonnet 4)&#xa;+ System Prompt&#xa;+ AgentCore Memory" vertex="1">
+          <mxGeometry height="100" width="170" x="240" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="2Rr0FvNkdr3H63s8mZy6-76" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;curved=0;" target="9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="2Rr0FvNkdr3H63s8mZy6-77" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;curved=0;" target="12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="8" parent="1" style="rhombus;whiteSpace=wrap;fillColor=#E8EAF6;strokeColor=#3F51B5;fontStyle=1;fontSize=10;" value="Agent&#xa;Decides" vertex="1">
+          <mxGeometry height="70" width="100" x="480" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="9" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;" value="registry_lookup&#xa;(DynamoDB)" vertex="1">
+          <mxGeometry height="50" width="130" x="640" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="10" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;" value="rss_fetch&#xa;→ feedparser&#xa;→ Nova 2 Lite" vertex="1">
+          <mxGeometry height="55" width="130" x="640" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="11" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;" value="gateway__WebSearch&#xa;(AgentCore MCP)" vertex="1">
+          <mxGeometry height="50" width="130" x="640" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="12" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;" value="web_fetch&#xa;→ HTTP GET&#xa;→ Haiku 4.5" vertex="1">
+          <mxGeometry height="55" width="130" x="640" y="325" as="geometry" />
+        </mxCell>
+        <mxCell id="13" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=10;" value="llm_extractor&#xa;(Bedrock Converse API)&#xa;Extracts structured events" vertex="1">
+          <mxGeometry height="60" width="160" x="830" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="14" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#E8EAF6;strokeColor=#3F51B5;fontSize=10;dashed=1;" value="Agent Loop&#xa;(think → tools → think)&#xa;Streaming tokens to user" vertex="1">
+          <mxGeometry height="60" width="160" x="1050" y="195" as="geometry" />
+        </mxCell>
+        <mxCell id="15" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#BBDEFB;strokeColor=#1565C0;fontStyle=1;" value="Streaming Response&#xa;(cited events +&#xa;conversational text)" vertex="1">
+          <mxGeometry height="60" width="160" x="1270" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="16" edge="1" parent="1" source="6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#1565C0;strokeWidth=2;" target="7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="17" edge="1" parent="1" source="7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#1565C0;strokeWidth=2;" target="8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="19" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=1;" target="10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="20" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=1;" target="11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="22" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#F9A825;strokeWidth=1;dashed=1;" target="13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="23" edge="1" parent="1" source="12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#F9A825;strokeWidth=1;dashed=1;" target="13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="24" edge="1" parent="1" source="13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#3F51B5;strokeWidth=1;dashed=1;" target="14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="25" edge="1" parent="1" source="14" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#1565C0;strokeWidth=2;" target="15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="26" parent="1" style="shape=line;strokeColor=#9E9E9E;strokeWidth=2;fillColor=none;align=center;perimeter=none;" vertex="1">
+          <mxGeometry height="10" width="1460" x="20" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="27" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#BF360C;fillColor=none;strokeColor=none;" value="WORKFLOW MODE" vertex="1">
+          <mxGeometry height="30" width="200" x="30" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="28" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#555555;fillColor=none;strokeColor=none;" value="Hybrid deterministic + agent pipeline · Structured JSON output · Pydantic validation&#xa;lookback_hours (default: 24) · Date range: reference_date − lookback_hours → reference_date" vertex="1">
+          <mxGeometry height="35" width="700" x="30" y="545" as="geometry" />
+        </mxCell>
+        <mxCell id="29" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#FBE9E7;strokeColor=#BF360C;strokeWidth=2;dashed=1;opacity=30;" vertex="1">
+          <mxGeometry height="460" width="1530" x="10" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="30" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#BF360C;fillColor=none;strokeColor=none;" value="Step 1" vertex="1">
+          <mxGeometry height="20" width="60" x="60" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="31" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#FFCCBC;strokeColor=#BF360C;fontStyle=1;fontSize=10;" value="Workflow Payload&#xa;{team, sport,&#xa;events, lookback_hours}" vertex="1">
+          <mxGeometry height="60" width="150" x="40" y="630" as="geometry" />
+        </mxCell>
+        <mxCell id="32" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#FFCCBC;strokeColor=#BF360C;fontSize=10;" value="Registry Lookup&#xa;(plain Python — no LLM)&#xa;DynamoDB query&#xa;Filter: accessible + not outdated" vertex="1">
+          <mxGeometry height="70" width="180" x="250" y="625" as="geometry" />
+        </mxCell>
+        <mxCell id="33" parent="1" style="rhombus;whiteSpace=wrap;fillColor=#FFF3E0;strokeColor=#E65100;fontStyle=1;fontSize=10;" value="Split URLs" vertex="1">
+          <mxGeometry height="55" width="100" x="500" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="34" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#2E7D32;fillColor=none;strokeColor=none;" value="Step 2: Parallel RSS (no agent loop)" vertex="1">
+          <mxGeometry height="20" width="230" x="215" y="710" as="geometry" />
+        </mxCell>
+        <mxCell id="35" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#C8E6C9;strokeColor=#2E7D32;fontStyle=1;fontSize=10;" value="asyncio.gather&#xa;(all RSS URLs concurrently)" vertex="1">
+          <mxGeometry height="50" width="180" x="240" y="760" as="geometry" />
+        </mxCell>
+        <mxCell id="36" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=9;" value="rss_fetch #1&#xa;feedparser →&#xa;Nova 2 Lite" vertex="1">
+          <mxGeometry height="55" width="110" x="180" y="830" as="geometry" />
+        </mxCell>
+        <mxCell id="37" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=9;" value="rss_fetch #2&#xa;feedparser →&#xa;Nova 2 Lite" vertex="1">
+          <mxGeometry height="55" width="110" x="310" y="830" as="geometry" />
+        </mxCell>
+        <mxCell id="38" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fillColor=none;strokeColor=none;" value="..." vertex="1">
+          <mxGeometry height="30" width="30" x="430" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="39" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=10;" value="Pydantic Validation&#xa;(EventResult schema)&#xa;Drop malformed events" vertex="1">
+          <mxGeometry height="55" width="180" x="230" y="910" as="geometry" />
+        </mxCell>
+        <mxCell id="40" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#4A148C;fillColor=none;strokeColor=none;" value="Step 3: Non-RSS Agent Loop" vertex="1">
+          <mxGeometry height="20" width="200" x="620" y="730" as="geometry" />
+        </mxCell>
+        <mxCell id="41" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#E1BEE7;strokeColor=#6A1B9A;fontStyle=1;fontSize=10;" value="Sonnet Agent&#xa;(Claude Sonnet 4)&#xa;+ Workflow Prompt" vertex="1">
+          <mxGeometry height="60" width="160" x="640" y="760" as="geometry" />
+        </mxCell>
+        <mxCell id="42" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=9;" value="gateway__WebSearch&#xa;(site:domain queries&#xa;+ catch-all search).&#xa;&#xa;Agentcore web search gives structured output out-of-the-box." vertex="1">
+          <mxGeometry height="75" width="150" x="560" y="855" as="geometry" />
+        </mxCell>
+        <mxCell id="43" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=9;" value="web_fetch&#xa;(HTTP GET →&#xa;Haiku 4.5 for event extraction &amp; structured output" vertex="1">
+          <mxGeometry height="75" width="140" x="750" y="855" as="geometry" />
+        </mxCell>
+        <mxCell id="44" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#EDE7F6;strokeColor=#4A148C;fontSize=9;dashed=1;" value="ConcurrentToolExecutor&#xa;(parallel within one turn,&#xa;sequential across turns)" vertex="1">
+          <mxGeometry height="35" width="135" x="520" y="750" as="geometry" />
+        </mxCell>
+        <mxCell id="45" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#BF360C;fillColor=none;strokeColor=none;" value="Step 4" vertex="1">
+          <mxGeometry height="30" width="60" x="920" y="760" as="geometry" />
+        </mxCell>
+        <mxCell id="46" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=10;" value="Parse + Validate&#xa;(up to 2 retries)&#xa;JSON extraction +&#xa;Pydantic schema check" vertex="1">
+          <mxGeometry height="65" width="160" x="980" y="855" as="geometry" />
+        </mxCell>
+        <mxCell id="47" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#FFCCBC;strokeColor=#BF360C;fontStyle=1;fontSize=10;" value="Aggregate&#xa;All Events" vertex="1">
+          <mxGeometry height="50" width="120" x="1200" y="810" as="geometry" />
+        </mxCell>
+        <mxCell id="48" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#FFCCBC;strokeColor=#BF360C;fontStyle=1;fontSize=10;" value="Structured JSON Output&#xa;{results: [...],&#xa;retrieval_diagnostics: {...}}" vertex="1">
+          <mxGeometry height="60" width="160" x="1360" y="805" as="geometry" />
+        </mxCell>
+        <mxCell id="49" edge="1" parent="1" source="31" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#BF360C;strokeWidth=2;" target="32">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="50" edge="1" parent="1" source="32" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#BF360C;strokeWidth=2;" target="33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="51" edge="1" parent="1" source="33" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="35" value="has RSS">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="52" edge="1" parent="1" source="33" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6A1B9A;strokeWidth=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="41" value="no RSS">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="53" edge="1" parent="1" source="35" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=1;" target="36">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="54" edge="1" parent="1" source="35" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=1;" target="37">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="55" edge="1" parent="1" source="36" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=1;" target="39">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="56" edge="1" parent="1" source="37" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=1;" target="39">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="57" edge="1" parent="1" source="41" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6A1B9A;strokeWidth=1;" target="42">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="58" edge="1" parent="1" source="41" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6A1B9A;strokeWidth=1;" target="43">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="61" edge="1" parent="1" source="41" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#F9A825;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="46">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="62" edge="1" parent="1" source="39" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#F9A825;strokeWidth=2;" target="47">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="990" />
+              <mxPoint x="1260" y="990" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="63" edge="1" parent="1" source="46" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#F9A825;strokeWidth=2;" target="47">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="64" edge="1" parent="1" source="47" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#BF360C;strokeWidth=2;" target="48">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="65" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fillColor=none;strokeColor=none;" value="LEGEND" vertex="1">
+          <mxGeometry height="20" width="80" x="30" y="1060" as="geometry" />
+        </mxCell>
+        <mxCell id="66" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#C8E6C9;strokeColor=#2E7D32;" vertex="1">
+          <mxGeometry height="15" width="20" x="30" y="1085" as="geometry" />
+        </mxCell>
+        <mxCell id="67" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fillColor=none;strokeColor=none;" value="Tools" vertex="1">
+          <mxGeometry height="20" width="50" x="55" y="1082" as="geometry" />
+        </mxCell>
+        <mxCell id="68" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#FFF9C4;strokeColor=#F9A825;" vertex="1">
+          <mxGeometry height="15" width="20" x="120" y="1085" as="geometry" />
+        </mxCell>
+        <mxCell id="69" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fillColor=none;strokeColor=none;" value="Validation / Extraction" vertex="1">
+          <mxGeometry height="20" width="130" x="145" y="1082" as="geometry" />
+        </mxCell>
+        <mxCell id="70" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#E1BEE7;strokeColor=#6A1B9A;" vertex="1">
+          <mxGeometry height="15" width="20" x="290" y="1085" as="geometry" />
+        </mxCell>
+        <mxCell id="71" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fillColor=none;strokeColor=none;" value="Agent (LLM reasoning)" vertex="1">
+          <mxGeometry height="20" width="130" x="315" y="1082" as="geometry" />
+        </mxCell>
+        <mxCell id="72" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#BBDEFB;strokeColor=#1565C0;" vertex="1">
+          <mxGeometry height="15" width="20" x="460" y="1085" as="geometry" />
+        </mxCell>
+        <mxCell id="73" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fillColor=none;strokeColor=none;" value="Input / Output (Chat)" vertex="1">
+          <mxGeometry height="20" width="120" x="485" y="1082" as="geometry" />
+        </mxCell>
+        <mxCell id="74" parent="1" style="rounded=1;whiteSpace=wrap;fillColor=#FFCCBC;strokeColor=#BF360C;" vertex="1">
+          <mxGeometry height="15" width="20" x="620" y="1085" as="geometry" />
+        </mxCell>
+        <mxCell id="75" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fillColor=none;strokeColor=none;" value="Input / Output (Workflow)" vertex="1">
+          <mxGeometry height="20" width="140" x="645" y="1082" as="geometry" />
+        </mxCell>
+        <mxCell id="76" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#555555;fillColor=none;strokeColor=none;" value="Event Types: INJURY (highest priority), CANCELLATION, VENUE_CHANGE, SCHEDULE_CHANGE, ROSTER&#xa;Sport Scope: NCAA Men&#39;s Basketball (CBB) only" vertex="1">
+          <mxGeometry height="30" width="600" x="30" y="1105" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
