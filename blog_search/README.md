@@ -12,7 +12,7 @@ The agent searches team-specific fan blogs, RSS feeds, and the web to find actio
 
 Conversational agent for interactive use. Accepts natural language questions, searches for events, and responds with cited answers.
 
-**Date range:** Controlled by `lookback_days` (default: 7 days). The agent searches for events from `today - lookback_days` to `today`. Configurable via `DEFAULT_LOOKBACK_DAYS` env var or the `lookback_days` parameter when creating the agent.
+**Date range:** Controlled by `lookback_hours` (default: 24 hours). The agent searches for events from `now - lookback_hours` to `now` using ISO datetime strings. Configurable via `DEFAULT_LOOKBACK_HOURS` env var or the `lookback_hours` parameter when creating the agent. The agent can override this if the user specifies a different time range (e.g., "last week", "yesterday").
 
 **Flow:**
 1. User asks a question (e.g., "Any injury news for Duke Blue Devils?")
@@ -32,7 +32,7 @@ Conversational agent for interactive use. Accepts natural language questions, se
 
 Hybrid deterministic + agent pipeline for scheduled/batch runs. Returns structured JSON.
 
-**Date range:** Controlled by `lookback_hours` (default: 24 hours). Computes a date range from `reference_date - lookback_hours` to `reference_date`. In production, `reference_date` is the current date/time. For testing, you can set it to a past date to validate event detection.
+**Date range:** Controlled by `lookback_hours` (default: 1.5 hours). Computes a datetime window from `reference_date - lookback_hours` to `reference_date` using ISO datetime strings. RSS entries are pre-filtered by timestamp before LLM extraction — only entries within the window are passed to the model. In production, `reference_date` is the current datetime (UTC). For testing, you can set it to a past date to validate event detection.
 
 **Event types:** By default, the workflow searches for ALL event types defined in `EVENT_TYPES` (in `models.py`):
 - `INJURY` — player injury reports (always highest priority)
@@ -123,7 +123,7 @@ The notebook has configurable parameters at the top:
 | Parameter | Mode | Default | Description |
 |-----------|------|---------|-------------|
 | `CHAT_LOOKBACK_DAYS` | Chat | 7 | How many days back to search |
-| `WORKFLOW_LOOKBACK_HOURS` | Workflow | 24 | How many hours back from reference date |
+| `WORKFLOW_LOOKBACK_HOURS` | Workflow | 1.5 | How many hours back from reference date |
 | `WORKFLOW_REFERENCE_DATE` | Workflow | `""` (today) | Set to a past date (e.g. `"2026-07-15"`) for testing |
 | `DEBUG` | Both | `False` | Enable verbose tool traces |
 
@@ -201,7 +201,7 @@ To modify the event types the agent detects, edit the `EVENT_TYPES` list in `mod
 | `team` | Yes | — | Team name (e.g. "Colgate Raiders") |
 | `sport` | No | `SPORT_SCOPE` (`"CBB"`) | Sport identifier (defined in `models.py`) |
 | `events` | No | All `EVENT_TYPES` | Subset of event types to detect |
-| `lookback_hours` | No | `24` | Hours back from current time to search |
+| `lookback_hours` | No | `1.5` | Hours back from current time to search |
 
 ```json
 {

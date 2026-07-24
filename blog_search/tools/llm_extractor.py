@@ -40,7 +40,7 @@ Extract sports events from the following content.
 Sport: {sport}
 Team: {team}
 Event types to detect: {event_types}
-Date range: {date_start} to {date_end}
+Date range: {datetime_start} to {datetime_end}
 Source URL: {source_url}
 Retrieval method: {retrieval_method}
 
@@ -116,8 +116,8 @@ async def extract_events(
     team: str,
     sport: str,
     event_types: list[str],
-    date_start: str = "",
-    date_end: str = "",
+    datetime_start: str = "",
+    datetime_end: str = "",
     model_id: str = "",
 ) -> dict:
     """Call the extraction model to extract events from content.
@@ -129,8 +129,8 @@ async def extract_events(
         team: Team name to filter for.
         sport: Sport to filter for.
         event_types: List of event types to detect.
-        date_start: Start of date range (YYYY-MM-DD).
-        date_end: End of date range (YYYY-MM-DD).
+        datetime_start: Start of datetime window (ISO format or YYYY-MM-DD).
+        datetime_end: End of datetime window (ISO format or YYYY-MM-DD).
         model_id: Bedrock model ID to use. Defaults to WEB_EXTRACTION_MODEL_ID.
 
     Returns:
@@ -148,8 +148,8 @@ async def extract_events(
         sport=sport,
         team=team,
         event_types=", ".join(event_types),
-        date_start=date_start or "any",
-        date_end=date_end or "any",
+        datetime_start=datetime_start or "any",
+        datetime_end=datetime_end or "any",
         source_url=source_url,
         retrieval_method=retrieval_method,
         detected_at=detected_at,

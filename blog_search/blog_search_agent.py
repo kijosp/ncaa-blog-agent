@@ -183,15 +183,15 @@ def _build_workflow_message(
     sport: str,
     events: list[str],
     blogs: list[dict],
-    date_start: str,
-    date_end: str,
+    datetime_start: str,
+    datetime_end: str,
 ) -> str:
     """Build the user message for workflow mode with pre-resolved URLs."""
     lines = [
         f"Team: {team}",
         f"Sport: {sport}",
         f"Event types to detect: {', '.join(events)}",
-        f"Date range: {date_start} to {date_end}",
+        f"Date range: {datetime_start} to {datetime_end}",
         "",
     ]
     lines.extend(_format_url_section(blogs))
@@ -330,7 +330,7 @@ def _create_session_manager(user_id: str, session_id: str):
 def create_chat_agent(
     user_id: str | None = None,
     session_id: str | None = None,
-    lookback_days: int | None = None,
+    lookback_hours: float | None = None,
     debug: bool = False,
 ) -> Agent:
     """Create the blog search agent for chat mode.
@@ -340,22 +340,25 @@ def create_chat_agent(
     multi-turn conversation history.
 
     Args:
-        lookback_days: Number of days to look back for events. Defaults to
-            DEFAULT_LOOKBACK_DAYS env var (7 if not set).
+        lookback_hours: Number of hours to look back for events. Defaults to
+            DEFAULT_LOOKBACK_HOURS env var (24 if not set). The agent can
+            override this if the user specifies a different time range.
     """
     gateway_client = _get_gateway_mcp_client()
     model_id = os.environ.get("MODEL_ID", "us.anthropic.claude-sonnet-4-6")
     model = BedrockModel(model_id=model_id, temperature=0)
 
-    today = date.today()
-    if lookback_days is None:
-        lookback_days = int(os.environ.get("DEFAULT_LOOKBACK_DAYS", "7"))
-    date_start = (today - timedelta(days=lookback_days)).isoformat()
+    now = datetime.now(timezone.utc)
+    if lookback_hours is None:
+        lookback_hours = float(os.environ.get("DEFAULT_LOOKBACK_HOURS", "24"))
+    dt_start = now - timedelta(hours=lookback_hours)
+    datetime_start_iso = dt_start.isoformat(timespec="seconds")
+    datetime_end_iso = now.isoformat(timespec="seconds")
 
     system_prompt = load_prompt("chat_system_prompt").format(
         event_types=", ".join(EVENT_TYPES),
         sport_scope=SPORT["name"],
-        date_range=f"{date_start} to {today.isoformat()}",
+        date_range=f"{datetime_start_iso} to {datetime_end_iso}",
     )
 
     if debug:
@@ -558,7 +561,7 @@ async def run_blog_search_workflow(
     team: str,
     sport: str = SPORT["id"],
     events: list[str] | None = None,
-    lookback_hours: int = 24,
+    lookback_hours: float = 1.5,
     debug: bool = False,
     reference_date: str = "",
 ) -> dict:
@@ -568,13 +571,13 @@ async def run_blog_search_workflow(
     1. Fetch team's blog URLs from DynamoDB registry (plain Python, no LLM).
     2. Direct parallel RSS calls for all RSS URLs (no agent loop needed).
     3. Agent loop for non-RSS URLs (needs search query reasoning).
-    4. Return all events (date filtering is done by the LLM extractor).
+    4. Return all events (date filtering is done by the RSS tool pre-LLM).
 
     Args:
         lookback_hours: How many hours back from reference_date to search.
-            Default 24 (past day). Use 0 for today only.
-        reference_date: Override today's date for testing (YYYY-MM-DD).
-            In production this is always empty (uses real date.today()).
+            Default 1.5 (past 90 minutes). Use 0 for reference_date only.
+        reference_date: Override today's date for testing (YYYY-MM-DD or ISO datetime).
+            In production this is always empty (uses real datetime.now(UTC)).
     """
     if events is None:
         events = EVENT_TYPES
@@ -619,17 +622,22 @@ async def run_blog_search_workflow(
     if debug:
         _debug_print_registry_urls(team, blogs)
 
-    # Compute date range (reference_date overrides today for testing)
+    # Compute datetime range (reference_date overrides now for testing)
     if reference_date:
-        ref = datetime.fromisoformat(reference_date).replace(tzinfo=timezone.utc)
+        try:
+            ref = datetime.fromisoformat(reference_date.replace("Z", "+00:00"))
+            if ref.tzinfo is None:
+                ref = ref.replace(tzinfo=timezone.utc)
+        except ValueError:
+            ref = datetime.fromisoformat(reference_date + "T23:59:59+00:00")
     else:
         ref = datetime.now(timezone.utc)
-    date_end = ref.strftime("%Y-%m-%d")
+    datetime_end = ref.isoformat(timespec="seconds")
     if lookback_hours == 0:
-        date_start = date_end
+        datetime_start = datetime_end
     else:
         start_dt = ref - timedelta(hours=lookback_hours)
-        date_start = start_dt.strftime("%Y-%m-%d")
+        datetime_start = start_dt.isoformat(timespec="seconds")
     event_types_str = ",".join(events)
 
     # Split blogs by RSS availability
@@ -639,7 +647,7 @@ async def run_blog_search_workflow(
     logger.info(
         "[WORKFLOW] Dispatching: %d RSS feeds (direct), %d non-RSS blogs (agent) "
         "date_range=%s to %s",
-        len(rss_blogs), len(non_rss_blogs), date_start, date_end,
+        len(rss_blogs), len(non_rss_blogs), datetime_start, datetime_end,
     )
 
     # Step 2: Direct parallel RSS calls (no agent loop)
@@ -652,8 +660,8 @@ async def run_blog_search_workflow(
             rss_fetch(
                 rss_url=b["rss_url"],
                 team=team,
-                date_start=date_start,
-                date_end=date_end,
+                datetime_start=datetime_start,
+                datetime_end=datetime_end,
                 event_types=event_types_str,
                 sport=sport,
             )
@@ -687,7 +695,7 @@ async def run_blog_search_workflow(
         try:
             agent = _create_workflow_agent(debug=debug)
             message = _build_non_rss_workflow_message(
-                non_rss_blogs, team, sport, events, date_start, date_end,
+                non_rss_blogs, team, sport, events, datetime_start, datetime_end,
             )
             if debug:
                 _debug_print_user_message(message)
@@ -713,7 +721,7 @@ async def run_blog_search_workflow(
         "team": team,
         "sport": sport,
         "lookback_hours": lookback_hours,
-        "date_range": {"start": date_start, "end": date_end},
+        "date_range": {"start": datetime_start, "end": datetime_end},
         "results": all_events,
         "results_count": len(all_events),
         "retrieval_diagnostics": {
@@ -739,17 +747,17 @@ def _build_non_rss_workflow_message(
     team: str,
     sport: str,
     events: list[str],
-    date_start: str,
-    date_end: str,
+    datetime_start: str,
+    datetime_end: str,
 ) -> str:
     """Build user message for the agent handling only non-RSS URLs."""
     lines = [
         f"Team: {team}",
         f"Sport: {sport}",
         f"Event types to detect: {', '.join(events)}",
-        f"Date range: {date_start} to {date_end}",
-        f"Parameters to pass to web_fetch: team={team}, date_start={date_start}, "
-        f"date_end={date_end}, event_types={','.join(events)}, sport={sport}",
+        f"Date range: {datetime_start} to {datetime_end}",
+        f"Parameters to pass to web_fetch: team={team}, datetime_start={datetime_start}, "
+        f"datetime_end={datetime_end}, event_types={','.join(events)}, sport={sport}",
         "",
         f"URLs without RSS ({len(non_rss_blogs)}):",
     ]
@@ -792,7 +800,7 @@ try:
                 team=team,
                 sport=payload.get("sport", SPORT["id"]),
                 events=payload.get("events"),
-                lookback_hours=payload.get("lookback_hours", 24),
+                lookback_hours=payload.get("lookback_hours", 1.5),
                 debug=debug,
             )
             yield result

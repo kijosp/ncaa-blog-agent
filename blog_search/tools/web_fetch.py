@@ -55,8 +55,8 @@ def _fetch_url(url: str) -> requests.Response:
 async def web_fetch(
     url: str,
     team: str = "",
-    date_start: str = "",
-    date_end: str = "",
+    datetime_start: str = "",
+    datetime_end: str = "",
     event_types: str = "",
     sport: str = "NCAA Men's Basketball",
     search_context: str = "",
@@ -69,8 +69,10 @@ async def web_fetch(
     Args:
         url: The full URL to fetch (e.g. "https://colgatefanforum.com/news/post-123").
         team: Team name to filter events for (e.g. "Colgate Raiders").
-        date_start: Start of date range (YYYY-MM-DD). Events before this are excluded.
-        date_end: End of date range (YYYY-MM-DD). Events after this are excluded.
+        datetime_start: Start of datetime window (ISO format, e.g. "2026-07-24T13:00:00+00:00"
+            or "YYYY-MM-DD"). Events before this are excluded.
+        datetime_end: End of datetime window (ISO format or YYYY-MM-DD).
+            Events after this are excluded.
         event_types: Comma-separated event types to detect (e.g. "INJURY,ROSTER").
         sport: Sport scope (default: "NCAA Men's Basketball").
         search_context: If set, indicates this fetch follows a web search. Sets retrieval_method to "web_search + web_fetch".
@@ -111,8 +113,8 @@ async def web_fetch(
             team=team,
             sport=sport,
             event_types=types_list,
-            date_start=date_start,
-            date_end=date_end,
+            datetime_start=datetime_start,
+            datetime_end=datetime_end,
         )
 
         return {
