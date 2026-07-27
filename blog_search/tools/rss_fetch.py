@@ -104,6 +104,7 @@ async def rss_fetch(
     datetime_end: str = "",
     event_types: str = "",
     sport: str = "NCAA Men's Basketball",
+    debug: bool = False,
 ) -> dict[str, Any]:
     """Fetch an RSS/Atom feed and extract events using LLM.
 
@@ -119,6 +120,7 @@ async def rss_fetch(
             Entries after this are excluded.
         event_types: Comma-separated event types to detect (e.g. "INJURY,ROSTER").
         sport: Sport scope (default: "NCAA Men's Basketball").
+        debug: If True, print detailed trace of filtering and extraction.
 
     Returns:
         A dict with keys:
@@ -221,6 +223,24 @@ async def rss_fetch(
         else:
             filtered_entries = all_entries
 
+        if debug:
+            print(f"\n{'━'*70}")
+            print(f"  RSS_FETCH DEBUG: {rss_url}")
+            print(f"{'━'*70}")
+            print(f"  Window: {dt_start.isoformat() if dt_start else 'any'} → {dt_end.isoformat() if dt_end else 'any'}")
+            print(f"  Total entries parsed: {len(all_entries)}")
+            print(f"  Entries in window:    {len(filtered_entries)}")
+            print(f"\n  {'─'*66}")
+            print(f"  ALL ENTRIES (with filter result):")
+            print(f"  {'─'*66}")
+            for i, e in enumerate(all_entries, 1):
+                dt_str = e["datetime"].isoformat() if e["datetime"] else "NO TIMESTAMP"
+                in_window = e in filtered_entries
+                status = "✅ IN WINDOW" if in_window else "❌ FILTERED OUT"
+                print(f"  {i:2d}. [{status}] {dt_str}")
+                print(f"      Title: {e['title'][:70]}")
+            print(f"  {'─'*66}\n")
+
         logger.info(
             "[RSS_FETCH] url=%s total_entries=%d in_window=%d window=%s→%s",
             rss_url, len(all_entries), len(filtered_entries),
@@ -265,6 +285,19 @@ async def rss_fetch(
         # Parse event_types string to list
         types_list = [t.strip() for t in event_types.split(",") if t.strip()] if event_types else []
 
+        if debug:
+            print(f"\n  {'─'*66}")
+            print(f"  FORMATTED TEXT → LLM EXTRACTOR:")
+            print(f"  {'─'*66}")
+            print(f"  Model: {RSS_EXTRACTION_MODEL_ID}")
+            print(f"  team={team}, sport={sport}")
+            print(f"  event_types={types_list}")
+            print(f"  datetime_start={datetime_start}")
+            print(f"  datetime_end={datetime_end}")
+            print(f"  {'─'*66}")
+            print(formatted_text)
+            print(f"  {'─'*66}\n")
+
         result = await extract_events(
             content=formatted_text,
             source_url=rss_url,
@@ -276,6 +309,17 @@ async def rss_fetch(
             datetime_end=datetime_end,
             model_id=RSS_EXTRACTION_MODEL_ID,
         )
+
+        if debug:
+            import json as _json
+            print(f"\n  {'─'*66}")
+            print(f"  LLM EXTRACTOR OUTPUT:")
+            print(f"  {'─'*66}")
+            print(f"  extraction_error: {result.get('extraction_error')}")
+            print(f"  events count: {len(result.get('events', []))}")
+            print(f"\n  Raw LLM response:")
+            print(_json.dumps(result.get("events", []), indent=2, default=str))
+            print(f"  {'━'*70}\n")
 
         return {
             "source": rss_url,
