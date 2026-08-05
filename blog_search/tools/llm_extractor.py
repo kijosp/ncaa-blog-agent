@@ -35,7 +35,7 @@ def _get_client():
 
 
 _EXTRACTION_PROMPT = """\
-Extract sports events from the following content that would cause a FanDuel trader \
+Extract sports events from the following content that would cause a sportsbook trader \
 to adjust betting lines.
 
 Sport: {sport}
