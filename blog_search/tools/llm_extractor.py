@@ -35,7 +35,8 @@ def _get_client():
 
 
 _EXTRACTION_PROMPT = """\
-Extract sports events from the following content.
+Extract sports events from the following content that would cause a FanDuel trader \
+to adjust betting lines.
 
 Sport: {sport}
 Team: {team}
@@ -43,8 +44,56 @@ Event types to detect: {event_types}
 Date range: {datetime_start} to {datetime_end}
 Source URL: {source_url}
 Retrieval method: {retrieval_method}
+Today's date: {detected_at}
 
-Rules:
+## Decision Criteria
+
+Ask: "Would this cause a trader to change a line NOW?" If no, do NOT extract it.
+
+Only extract events that represent a CHANGE in player availability, game scheduling, \
+or competitive conditions that a trader must act on for the current season.
+
+## Do NOT Extract (these are NOT actionable events)
+
+- **Offseason routine activity**: general roster construction, summer practices, \
+team-building announcements, preseason previews without specific news
+- **Future recruiting**: high school recruits or verbal commitments from players \
+who will not be on the roster for the current season
+- **Stale or already-known news**: events that occurred weeks or months ago \
+(old injuries, completed transfers from prior windows, past-season stats)
+- **Administrative announcements**: jersey number assignments, fan events, \
+open practices, supporters groups, scholarship awards to walk-ons
+- **Schedule announcements (not changes)**: initial schedule releases, conference \
+schedule publications, tournament bracket reveals — only extract if a previously \
+announced game was moved, rescheduled, or cancelled
+- **Editorial/feature content**: player profiles, preseason projections, rankings, \
+human interest stories, retrospective awards
+- **Exhibition/non-competitive**: exhibition games, preseason scrimmages, \
+spring games, alumni tournaments (TBT)
+- **Coaching staff changes**: coordinator hires, support staff additions, \
+non-player personnel moves
+- **Wrong sport or division**: events for non-FBS football, non-D1 basketball, \
+NHL/NFL/NBA players, alumni now in professional leagues
+- **Low-impact players**: walk-on additions, FCS depth players, freshmen \
+expected to redshirt with no competitive impact
+- **Vague or speculative information**: rumors, unconfirmed reports, coach-speak \
+without a concrete status change (e.g., "he's a question mark", "we'll see")
+
+## DO Extract
+
+- **INJURY**: confirmed injury with a named player affecting game availability \
+(missed time, surgery, ruled out, game-time decision, limited)
+- **ROSTER**: player OUT — suspension, dismissal, transfer portal entry, \
+opt-out, or declared for draft. Also: unexpected new addition that changes \
+lineup composition for imminent games.
+- **SCHEDULE_CHANGE**: a previously scheduled game moved, time changed, or \
+rescheduled (NOT initial schedule releases)
+- **VENUE_CHANGE**: a game's venue has changed from what was previously announced
+- **CANCELLATION**: a scheduled game has been cancelled outright
+- **OTHER**: anything else that would directly cause a trader to move a line
+
+## Rules
+
 - Only extract events matching the specified event types.
 - Only extract events for the specified team and sport.
 - If blog_post_date is outside the date range, SKIP that event.
