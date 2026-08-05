@@ -47,7 +47,7 @@ If it shows `0 tools`, the gateway deployment needs to be fixed — models won't
 
 Open `evaluation/model_comparison.ipynb` in Jupyter and run cells sequentially. The notebook:
 
-1. Samples teams from the blog registry
+1. Samples teams from the blog registry json file
 2. Runs each model config (Opus baseline, GLM 5, Haiku 4.5, Nova 2 Lite, current default mix)
 3. Compares event coverage and cost
 
