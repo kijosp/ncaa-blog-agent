@@ -4,6 +4,8 @@ Both rss_fetch and web_fetch call into this module to extract structured events
 from raw content using a lightweight model (default: Haiku 4.5).
 """
 
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
@@ -13,6 +15,18 @@ from datetime import datetime, timezone
 import boto3
 
 logger = logging.getLogger(__name__)
+
+_token_accumulator = {"rss_input": 0, "rss_output": 0, "web_input": 0, "web_output": 0}
+
+
+def reset_token_accumulator():
+    global _token_accumulator
+    _token_accumulator = {"rss_input": 0, "rss_output": 0, "web_input": 0, "web_output": 0}
+
+
+def get_accumulated_tokens() -> dict:
+    return dict(_token_accumulator)
+
 
 RSS_EXTRACTION_MODEL_ID = os.environ.get(
     "RSS_EXTRACTION_MODEL_ID", "us.amazon.nova-2-lite-v1:0"
@@ -213,6 +227,11 @@ async def extract_events(
                 messages=[{"role": "user", "content": [{"text": prompt}]}],
                 inferenceConfig={"temperature": 0.0, "maxTokens": 4096},
             )
+
+            usage = response.get("usage", {})
+            prefix = "rss" if retrieval_method == "rss" else "web"
+            _token_accumulator[f"{prefix}_input"] += usage.get("inputTokens", 0)
+            _token_accumulator[f"{prefix}_output"] += usage.get("outputTokens", 0)
 
             response_text = response["output"]["message"]["content"][0]["text"]
             parsed = _parse_extraction_response(response_text)

@@ -47,6 +47,8 @@ Deployed as an AgentCore Runtime agent. Supports two modes:
 }
 """
 
+from __future__ import annotations
+
 import asyncio
 import base64
 import json
@@ -384,7 +386,7 @@ def create_chat_agent(
     )
 
 
-def _create_workflow_agent(debug: bool = False) -> Agent:
+def _create_workflow_agent(debug: bool = False, callback_handler=None) -> Agent:
     """Create the workflow agent for non-RSS URL processing.
 
     Only has gateway (web search) + web_fetch. RSS is handled programmatically
@@ -398,7 +400,9 @@ def _create_workflow_agent(debug: bool = False) -> Agent:
         event_types=", ".join(EVENT_TYPES),
     )
 
-    if debug:
+    if callback_handler is not None:
+        handler = callback_handler
+    elif debug:
         handler = DebugCallbackHandler()
         _debug_print_system_prompt("workflow", system_prompt)
     else:
@@ -564,6 +568,7 @@ async def run_blog_search_workflow(
     lookback_hours: float = 1.5,
     debug: bool = False,
     reference_date: str = "",
+    callback_handler=None,
 ) -> dict:
     """Execute the hybrid blog search workflow pipeline.
 
@@ -690,10 +695,12 @@ async def run_blog_search_workflow(
     # Step 3: Agent loop for non-RSS blogs (needs search query reasoning)
     web_searches_performed = 0
     web_fetches_performed = 0
+    agent_input_tokens = 0
+    agent_output_tokens = 0
 
     if non_rss_blogs:
         try:
-            agent = _create_workflow_agent(debug=debug)
+            agent = _create_workflow_agent(debug=debug, callback_handler=callback_handler)
             message = _build_non_rss_workflow_message(
                 non_rss_blogs, team, sport, events, datetime_start, datetime_end,
             )
@@ -703,13 +710,20 @@ async def run_blog_search_workflow(
             result = agent(message)
             response_text = str(result)
 
+            usage = result.metrics.accumulated_usage
+            agent_input_tokens = usage.get("inputTokens", 0)
+            agent_output_tokens = usage.get("outputTokens", 0)
+
+            tool_metrics = result.metrics.tool_metrics
+            search_metrics = tool_metrics.get("gateway__WebSearch")
+            fetch_metrics = tool_metrics.get("web_fetch")
+            web_searches_performed = search_metrics.call_count if search_metrics else 0
+            web_fetches_performed = fetch_metrics.call_count if fetch_metrics else 0
+
             validated = _parse_and_validate_with_retry(agent, response_text, debug=debug)
             if isinstance(validated, BlogSearchResponse):
                 web_events = [r.model_dump() for r in validated.results]
                 all_events.extend(web_events)
-                diag = validated.retrieval_diagnostics.model_dump()
-                web_searches_performed = diag.get("web_searches_performed", 0)
-                web_fetches_performed = diag.get("web_fetches_performed", 0)
             elif isinstance(validated, dict) and validated.get("status") == "error":
                 logger.warning("[WORKFLOW] Non-RSS agent failed: %s", validated.get("error"))
         except Exception as e:
@@ -731,6 +745,8 @@ async def run_blog_search_workflow(
             "rss_feeds_fetched": rss_feeds_fetched,
             "web_searches_performed": web_searches_performed,
             "web_fetches_performed": web_fetches_performed,
+            "agent_input_tokens": agent_input_tokens,
+            "agent_output_tokens": agent_output_tokens,
             "events_found_via_rss": events_from_rss > 0,
             "events_found_via_web_search": len(all_events) > events_from_rss,
         },

@@ -36,6 +36,13 @@ public/
 discovery/.env
 discovery/output/*.json
 discovery/output/*.log
+
+# Evaluation results
+evaluation/results/*.json
+evaluation/results/*.png
+
+# Local artifacts
+.python-version
+*.pkg
 ~$*
 uv.lock
-~$*
