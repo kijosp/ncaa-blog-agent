@@ -1,0 +1,564 @@
+{
+  "run_id": "haiku_4.5_20260806_201126",
+  "timestamp": "20260806_201126",
+  "model_config": {
+    "label": "Haiku 4.5",
+    "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    "rss_model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    "web_model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+  },
+  "teams": [
+    "Eastern Michigan Eagles",
+    "Auburn Tigers",
+    "Missouri Tigers",
+    "Maine Black Bears",
+    "La Salle Explorers",
+    "George Washington Revolutionaries",
+    "Duke Blue Devils",
+    "Columbia Lions",
+    "Texas Longhorns",
+    "BYU Cougars",
+    "Austin Peay Governors",
+    "Dartmouth Big Green",
+    "Kentucky Wildcats",
+    "Long Island University Sharks",
+    "West Georgia Wolves",
+    "Iowa State Cyclones",
+    "Texas A&M Aggies",
+    "LSU Tigers",
+    "UAB Blazers",
+    "Mount St. Mary's Mountaineers"
+  ],
+  "lookback_hours": 168,
+  "reference_date": "",
+  "team_results": [
+    {
+      "team": "Eastern Michigan Eagles",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 63900,
+        "agent_output_tokens": 1445,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 33862,
+        "web_output_tokens": 588
+      },
+      "web_searches": 4,
+      "web_fetches": 3,
+      "rss_feeds_fetched": 0,
+      "latency_seconds": 24.97,
+      "errors": []
+    },
+    {
+      "team": "Auburn Tigers",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 48771,
+        "agent_output_tokens": 1247,
+        "rss_input_tokens": 4522,
+        "rss_output_tokens": 28,
+        "web_input_tokens": 12881,
+        "web_output_tokens": 255
+      },
+      "web_searches": 4,
+      "web_fetches": 2,
+      "rss_feeds_fetched": 3,
+      "latency_seconds": 18.45,
+      "errors": []
+    },
+    {
+      "team": "Missouri Tigers",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 75457,
+        "agent_output_tokens": 1308,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 3708,
+        "web_output_tokens": 34
+      },
+      "web_searches": 4,
+      "web_fetches": 2,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 18.03,
+      "errors": []
+    },
+    {
+      "team": "Maine Black Bears",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 179049,
+        "agent_output_tokens": 2231,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 13944,
+        "web_output_tokens": 156
+      },
+      "web_searches": 7,
+      "web_fetches": 4,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 35.48,
+      "errors": []
+    },
+    {
+      "team": "La Salle Explorers",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 29583,
+        "agent_output_tokens": 1373,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 17460,
+        "web_output_tokens": 111
+      },
+      "web_searches": 4,
+      "web_fetches": 3,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 16.71,
+      "errors": []
+    },
+    {
+      "team": "George Washington Revolutionaries",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 33014,
+        "agent_output_tokens": 805,
+        "rss_input_tokens": 1092,
+        "rss_output_tokens": 14,
+        "web_input_tokens": 22889,
+        "web_output_tokens": 423
+      },
+      "web_searches": 2,
+      "web_fetches": 2,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 15.03,
+      "errors": []
+    },
+    {
+      "team": "Duke Blue Devils",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 195256,
+        "agent_output_tokens": 3314,
+        "rss_input_tokens": 3964,
+        "rss_output_tokens": 14,
+        "web_input_tokens": 24987,
+        "web_output_tokens": 790
+      },
+      "web_searches": 6,
+      "web_fetches": 8,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 39.95,
+      "errors": []
+    },
+    {
+      "team": "Columbia Lions",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 33892,
+        "agent_output_tokens": 1006,
+        "rss_input_tokens": 1095,
+        "rss_output_tokens": 14,
+        "web_input_tokens": 2336,
+        "web_output_tokens": 34
+      },
+      "web_searches": 3,
+      "web_fetches": 2,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 12.72,
+      "errors": []
+    },
+    {
+      "team": "Texas Longhorns",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 27612,
+        "agent_output_tokens": 779,
+        "rss_input_tokens": 1072,
+        "rss_output_tokens": 14,
+        "web_input_tokens": 0,
+        "web_output_tokens": 0
+      },
+      "web_searches": 4,
+      "web_fetches": 0,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 11.09,
+      "errors": []
+    },
+    {
+      "team": "BYU Cougars",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "BYU Cougars",
+          "event_type": "ROSTER",
+          "player_name": "Richie Saunders",
+          "excerpt": "BYU star Richie Saunders has been named as one of the primary players to watch as a college basketball returner, now that he and his fellow seniors have been granted a fifth year of eligibility, if they feel so inclined to accept it.",
+          "summary": "BYU star Richie Saunders may not play for Kentucky this season and probably not BYU either due to eligibility considerations.",
+          "source_url": "https://lawlessrepublic.com/richie-saunders-wont-play-for-kentucky-this-season-and-probably-not-byu-either?utm_source=RSS",
+          "blog_post_date": "2026-08-03",
+          "detected_at": "2026-08-06T20:15:24+00:00",
+          "retrieval_method": "rss"
+        },
+        {
+          "sport": "CBB",
+          "team": "BYU Cougars",
+          "event_type": "ROSTER",
+          "player_name": "Jaxon Kohler",
+          "excerpt": "The stars were finally aligning over Kevin Young and BYU basketball for a moment there. Having missed on countless centers throughout the offseason -- both in traditional recruiting, if such a thing even exists anymore, and through the transfer portal --",
+          "summary": "Judge's clarification means BYU basketball won't be signing center Jaxon Kohler.",
+          "source_url": "https://lawlessrepublic.com/judge-clarification-means-byu-basketball-wont-be-signing-center-jaxon-kohler?utm_source=RSS",
+          "blog_post_date": "2026-08-03",
+          "detected_at": "2026-08-06T20:15:24+00:00",
+          "retrieval_method": "rss"
+        },
+        {
+          "sport": "CBB",
+          "team": "BYU Cougars",
+          "event_type": "ROSTER",
+          "player_name": "Jakub Urbaniak",
+          "excerpt": "Urbaniak averaged 9.4 points and 6.0 rebounds per game last season at WKS Slask Wroclaw.",
+          "summary": "Jakub Urbaniak joins BYU men's basketball for the 2026-27 campaign.",
+          "source_url": "https://byucougars.com/rss",
+          "blog_post_date": "2026-08-06",
+          "detected_at": "2026-08-06T20:15:24+00:00",
+          "retrieval_method": "rss"
+        },
+        {
+          "sport": "CBB",
+          "team": "BYU Cougars",
+          "event_type": "ROSTER",
+          "player_name": "Jakub Urbaniak",
+          "excerpt": "Jakub Urbaniak is the newest member of the BYU men's basketball program, head coach Kevin Young announced on Thursday. The 6-foot-9 big man signs and joins the Cougars for the 2026-27 season after spending last season with WKS Slask Wroclaw.",
+          "summary": "BYU adds 6-foot-9 international forward Jakub Urbaniak to roster for 2026-27 season.",
+          "source_url": "https://byucougars.com/news/2026/08/6/jakub-urbaniak-signs-with-byu-mens-basketball",
+          "blog_post_date": "2026-08-06",
+          "detected_at": "2026-08-06T20:15:34+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        }
+      ],
+      "events_count": 4,
+      "token_usage": {
+        "agent_input_tokens": 51481,
+        "agent_output_tokens": 1163,
+        "rss_input_tokens": 5140,
+        "rss_output_tokens": 597,
+        "web_input_tokens": 2268,
+        "web_output_tokens": 290
+      },
+      "web_searches": 4,
+      "web_fetches": 1,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 16.87,
+      "errors": []
+    },
+    {
+      "team": "Austin Peay Governors",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 31133,
+        "agent_output_tokens": 1037,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 11404,
+        "web_output_tokens": 159
+      },
+      "web_searches": 3,
+      "web_fetches": 2,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 15.16,
+      "errors": []
+    },
+    {
+      "team": "Dartmouth Big Green",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 32457,
+        "agent_output_tokens": 1096,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 20836,
+        "web_output_tokens": 120
+      },
+      "web_searches": 3,
+      "web_fetches": 2,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 17.32,
+      "errors": []
+    },
+    {
+      "team": "Kentucky Wildcats",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "Kentucky Wildcats",
+          "event_type": "INJURY",
+          "player_name": "Kam Williams",
+          "excerpt": "Kam Williams expects to be on the court for the start of the 2026-27 season",
+          "summary": "Kam Williams injury update indicating he is expected to return for the 2026-27 season start.",
+          "source_url": "https://www.aseaofblue.com/kentucky-wildcats-basketball-injuries",
+          "blog_post_date": "2026-07-31",
+          "detected_at": "2026-08-06T20:16:40+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        },
+        {
+          "sport": "CBB",
+          "team": "Kentucky Wildcats",
+          "event_type": "ROSTER",
+          "player_name": null,
+          "excerpt": "Judge Charlotte Sweeney of the U.S. District Court of Colorado issued an injunction that declared all athletes that just finished their fourth year eligible for a fifth season. The ruling gives Kentucky a number of options to fill their last roster spot.",
+          "summary": "Court ruling expands Kentucky's roster options by making fourth-year players eligible for a fifth season, potentially allowing the Wildcats to add players like AJ Storr or Denzel Aberdeen to fill their final roster spot.",
+          "source_url": "https://ukwildcatswire.usatoday.com/story/sports/college/kentucky/mens-basketball/2026/07/31/kentucky-basketball-new-roster-options-judge-ruling/91130118007/",
+          "blog_post_date": "2026-07-31",
+          "detected_at": "2026-08-06T20:16:45+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        }
+      ],
+      "events_count": 2,
+      "token_usage": {
+        "agent_input_tokens": 46305,
+        "agent_output_tokens": 1577,
+        "rss_input_tokens": 4024,
+        "rss_output_tokens": 28,
+        "web_input_tokens": 5313,
+        "web_output_tokens": 516
+      },
+      "web_searches": 3,
+      "web_fetches": 2,
+      "rss_feeds_fetched": 7,
+      "latency_seconds": 24.9,
+      "errors": []
+    },
+    {
+      "team": "Long Island University Sharks",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 28948,
+        "agent_output_tokens": 813,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 0,
+        "web_output_tokens": 0
+      },
+      "web_searches": 5,
+      "web_fetches": 0,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 8.95,
+      "errors": []
+    },
+    {
+      "team": "West Georgia Wolves",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "West Georgia Wolves",
+          "event_type": "ROSTER",
+          "player_name": "Marshal Destremau",
+          "excerpt": "West Georgia men's basketball head coach Dave Moore revealed that the Wolves picked up University of Texas Rio Grande Valley transfer Marshal Destremau in the latest round of 2026 signings.",
+          "summary": "West Georgia added transfer Marshal Destremau to the 2026-27 roster.",
+          "source_url": "https://uwgathletics.com/rss?path=mbball",
+          "blog_post_date": "2026-08-03",
+          "detected_at": "2026-08-06T20:17:12+00:00",
+          "retrieval_method": "rss"
+        },
+        {
+          "sport": "CBB",
+          "team": "West Georgia Wolves",
+          "event_type": "ROSTER",
+          "player_name": "Marshal Destremau",
+          "excerpt": "West Georgia men's basketball head coach Dave Moore revealed that the Wolves picked up University of Texas Rio Grande Valley transfer Marshal Destremau in the latest round of 2026 signings.",
+          "summary": "West Georgia added transfer Marshal Destremau to the 2026-27 roster, impacting current season depth.",
+          "source_url": "https://uwgathletics.com/rss?path=mbball",
+          "blog_post_date": "2026-08-03",
+          "detected_at": "2026-08-06T20:17:12+00:00",
+          "retrieval_method": "rss"
+        }
+      ],
+      "events_count": 2,
+      "token_usage": {
+        "agent_input_tokens": 52622,
+        "agent_output_tokens": 1332,
+        "rss_input_tokens": 2204,
+        "rss_output_tokens": 381,
+        "web_input_tokens": 6398,
+        "web_output_tokens": 182
+      },
+      "web_searches": 3,
+      "web_fetches": 3,
+      "rss_feeds_fetched": 4,
+      "latency_seconds": 22.54,
+      "errors": []
+    },
+    {
+      "team": "Iowa State Cyclones",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "Iowa State Cyclones",
+          "event_type": "ROSTER",
+          "player_name": "Tamin Lipsey",
+          "excerpt": "The courts recently ruled that 2022 high school graduates are eligible to play a fifth year in the 2026-27 season. That criteria fits Cyclone legend Tamin Lipsey. Does that actually mean he\u2019ll come back to Iowa State?",
+          "summary": "Tamin Lipsey, a Cyclone legend, may return for a fifth year due to a recent court ruling allowing 2022 high school graduates to play an additional season.",
+          "source_url": "https://cyclonefanatic.com/forum/threads/daily-clone-will-tamin-lipsey-be-a-cyclone-next-year.299375/",
+          "blog_post_date": "2026-08-05",
+          "detected_at": "2026-08-06T20:17:40+00:00",
+          "retrieval_method": "rss"
+        },
+        {
+          "sport": "CBB",
+          "team": "Iowa State Cyclones",
+          "event_type": "ROSTER",
+          "player_name": "Tamin Lipsey",
+          "excerpt": "The courts recently ruled that 2022 high school graduates are eligible to play a fifth year in the 2026-27 season. That criteria fits Cyclone legend Tamin Lipsey. Does that actually mean he\u2019ll come back to Iowa State?",
+          "summary": "Tamin Lipsey, a Cyclone legend, may return for a fifth year due to a recent court ruling allowing 2022 high school graduates to play an additional season.",
+          "source_url": "https://cyclonefanatic.com/forum/threads/daily-clone-will-tamin-lipsey-be-a-cyclone-next-year.299375/",
+          "blog_post_date": "2026-08-05",
+          "detected_at": "2026-08-06T20:17:40+00:00",
+          "retrieval_method": "rss"
+        }
+      ],
+      "events_count": 2,
+      "token_usage": {
+        "agent_input_tokens": 69987,
+        "agent_output_tokens": 1382,
+        "rss_input_tokens": 6478,
+        "rss_output_tokens": 480,
+        "web_input_tokens": 13670,
+        "web_output_tokens": 235
+      },
+      "web_searches": 3,
+      "web_fetches": 3,
+      "rss_feeds_fetched": 3,
+      "latency_seconds": 22.64,
+      "errors": []
+    },
+    {
+      "team": "Texas A&M Aggies",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "Texas A&M Aggies",
+          "event_type": "INJURY",
+          "player_name": "Mackenzie Mgbako",
+          "excerpt": "On how Mackenzie Mgbako (foot) and Zach Clemence (foot) are doing in their recovery: 'They just practiced yesterday. I thought they looked better than I thought they would look.'",
+          "summary": "Mackenzie Mgbako recovering from foot injury, currently practicing with restrictions during summer workouts.",
+          "source_url": "https://www.on3.com/sites/aggie-yell/news/everything-texas-am-aggies-basketball-coach-bucky-mcmillan-said-during-tuesdays-press-conference/",
+          "blog_post_date": "2026-07-07",
+          "detected_at": "2026-08-06T20:18:22+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        },
+        {
+          "sport": "CBB",
+          "team": "Texas A&M Aggies",
+          "event_type": "INJURY",
+          "player_name": "Zach Clemence",
+          "excerpt": "On how Mackenzie Mgbako (foot) and Zach Clemence (foot) are doing in their recovery: 'They just practiced yesterday. I thought they looked better than I thought they would look.'",
+          "summary": "Zach Clemence recovering from foot injury, currently practicing during summer workouts.",
+          "source_url": "https://www.on3.com/sites/aggie-yell/news/everything-texas-am-aggies-basketball-coach-bucky-mcmillan-said-during-tuesdays-press-conference/",
+          "blog_post_date": "2026-07-07",
+          "detected_at": "2026-08-06T20:18:22+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        },
+        {
+          "sport": "CBB",
+          "team": "Texas A&M Aggies",
+          "event_type": "ROSTER",
+          "player_name": "Cade Phillips",
+          "excerpt": "On Tennessee transfer Cade Phillips: 'Cade has played in an Elite Eight game. Been a captain of a team that's been really good. I've known Cade since he was 14, I guess? I think I offered him his first offer when I was at Samford. Alabama kid. Cade's a winner, just knows what it takes to win. He'll be a leader for us.'",
+          "summary": "Tennessee transfer Cade Phillips added to Texas A&M roster as a new player expected to be a leader.",
+          "source_url": "https://www.on3.com/sites/aggie-yell/news/everything-texas-am-aggies-basketball-coach-bucky-mcmillan-said-during-tuesdays-press-conference/",
+          "blog_post_date": "2026-07-07",
+          "detected_at": "2026-08-06T20:18:22+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        }
+      ],
+      "events_count": 3,
+      "token_usage": {
+        "agent_input_tokens": 66087,
+        "agent_output_tokens": 3014,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 5722,
+        "web_output_tokens": 846
+      },
+      "web_searches": 6,
+      "web_fetches": 5,
+      "rss_feeds_fetched": 0,
+      "latency_seconds": 29.67,
+      "errors": []
+    },
+    {
+      "team": "LSU Tigers",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 54776,
+        "agent_output_tokens": 1601,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 35895,
+        "web_output_tokens": 351
+      },
+      "web_searches": 5,
+      "web_fetches": 3,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 24.61,
+      "errors": []
+    },
+    {
+      "team": "UAB Blazers",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 92519,
+        "agent_output_tokens": 1932,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 24961,
+        "web_output_tokens": 551
+      },
+      "web_searches": 4,
+      "web_fetches": 5,
+      "rss_feeds_fetched": 0,
+      "latency_seconds": 25.2,
+      "errors": []
+    },
+    {
+      "team": "Mount St. Mary's Mountaineers",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 28890,
+        "agent_output_tokens": 1084,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 2628,
+        "web_output_tokens": 34
+      },
+      "web_searches": 3,
+      "web_fetches": 2,
+      "rss_feeds_fetched": 3,
+      "latency_seconds": 13.25,
+      "errors": []
+    }
+  ],
+  "totals": {
+    "events": 13,
+    "web_searches": 80,
+    "input_tokens": 1532492,
+    "output_tokens": 36784,
+    "cost_usd": 2.6764
+  }
+}

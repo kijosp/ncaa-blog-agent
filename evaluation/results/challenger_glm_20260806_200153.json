@@ -1,0 +1,553 @@
+{
+  "run_id": "glm_5_20260806_200153",
+  "timestamp": "20260806_200153",
+  "model_config": {
+    "label": "GLM 5",
+    "model_id": "zai.glm-5",
+    "rss_model_id": "zai.glm-5",
+    "web_model_id": "zai.glm-5"
+  },
+  "teams": [
+    "Eastern Michigan Eagles",
+    "Auburn Tigers",
+    "Missouri Tigers",
+    "Maine Black Bears",
+    "La Salle Explorers",
+    "George Washington Revolutionaries",
+    "Duke Blue Devils",
+    "Columbia Lions",
+    "Texas Longhorns",
+    "BYU Cougars",
+    "Austin Peay Governors",
+    "Dartmouth Big Green",
+    "Kentucky Wildcats",
+    "Long Island University Sharks",
+    "West Georgia Wolves",
+    "Iowa State Cyclones",
+    "Texas A&M Aggies",
+    "LSU Tigers",
+    "UAB Blazers",
+    "Mount St. Mary's Mountaineers"
+  ],
+  "lookback_hours": 168,
+  "reference_date": "",
+  "team_results": [
+    {
+      "team": "Eastern Michigan Eagles",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 26362,
+        "agent_output_tokens": 537,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 29852,
+        "web_output_tokens": 36
+      },
+      "web_searches": 2,
+      "web_fetches": 3,
+      "rss_feeds_fetched": 0,
+      "latency_seconds": 23.38,
+      "errors": []
+    },
+    {
+      "team": "Auburn Tigers",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "Auburn Tigers",
+          "event_type": "INJURY",
+          "player_name": "Tai Buster",
+          "excerpt": "(Buster will) be out, I'd assume the first five of six games and hopefully have him towards the backstretch, Golesh said.",
+          "summary": "Offensive lineman Tai Buster is expected to miss the first five or six games of the season due to injury.",
+          "source_url": "https://auburnwire.usatoday.com/story/sports/college/auburn/football/2026/08/05/auburn-football-injury-report-before-fall-camp-begins-sec/91177411007/",
+          "blog_post_date": "2026-08-05",
+          "detected_at": "2026-08-06T20:02:29+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        }
+      ],
+      "events_count": 1,
+      "token_usage": {
+        "agent_input_tokens": 48595,
+        "agent_output_tokens": 597,
+        "rss_input_tokens": 4522,
+        "rss_output_tokens": 28,
+        "web_input_tokens": 1629,
+        "web_output_tokens": 221
+      },
+      "web_searches": 4,
+      "web_fetches": 1,
+      "rss_feeds_fetched": 3,
+      "latency_seconds": 14.85,
+      "errors": []
+    },
+    {
+      "team": "Missouri Tigers",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 28851,
+        "agent_output_tokens": 624,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 5390,
+        "web_output_tokens": 32
+      },
+      "web_searches": 4,
+      "web_fetches": 3,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 21.02,
+      "errors": []
+    },
+    {
+      "team": "Maine Black Bears",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 33253,
+        "agent_output_tokens": 374,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 10317,
+        "web_output_tokens": 12
+      },
+      "web_searches": 3,
+      "web_fetches": 1,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 18.99,
+      "errors": []
+    },
+    {
+      "team": "La Salle Explorers",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 12705,
+        "agent_output_tokens": 585,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 0,
+        "web_output_tokens": 0
+      },
+      "web_searches": 4,
+      "web_fetches": 0,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 14.7,
+      "errors": []
+    },
+    {
+      "team": "George Washington Revolutionaries",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 30293,
+        "agent_output_tokens": 671,
+        "rss_input_tokens": 1092,
+        "rss_output_tokens": 14,
+        "web_input_tokens": 39140,
+        "web_output_tokens": 44
+      },
+      "web_searches": 2,
+      "web_fetches": 4,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 32.17,
+      "errors": []
+    },
+    {
+      "team": "Duke Blue Devils",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 68738,
+        "agent_output_tokens": 854,
+        "rss_input_tokens": 3964,
+        "rss_output_tokens": 14,
+        "web_input_tokens": 9578,
+        "web_output_tokens": 36
+      },
+      "web_searches": 5,
+      "web_fetches": 4,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 21.08,
+      "errors": []
+    },
+    {
+      "team": "Columbia Lions",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 14787,
+        "agent_output_tokens": 390,
+        "rss_input_tokens": 1095,
+        "rss_output_tokens": 14,
+        "web_input_tokens": 0,
+        "web_output_tokens": 0
+      },
+      "web_searches": 3,
+      "web_fetches": 0,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 15.55,
+      "errors": []
+    },
+    {
+      "team": "Texas Longhorns",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 46868,
+        "agent_output_tokens": 946,
+        "rss_input_tokens": 1072,
+        "rss_output_tokens": 14,
+        "web_input_tokens": 16559,
+        "web_output_tokens": 56
+      },
+      "web_searches": 4,
+      "web_fetches": 5,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 28.14,
+      "errors": []
+    },
+    {
+      "team": "BYU Cougars",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "BYU Cougars",
+          "event_type": "ROSTER",
+          "player_name": "Richie Saunders",
+          "excerpt": "BYU star Richie Saunders has been named as one of the primary players to watch as a college basketball returner, now that he and his fellow seniors have been granted a fifth year of eligibility, if they feel so inclined to accept it.",
+          "summary": "BYU star Richie Saunders may not play for Kentucky this season and probably not BYU either due to eligibility considerations.",
+          "source_url": "https://lawlessrepublic.com/feed/",
+          "blog_post_date": "2026-08-03",
+          "detected_at": "2026-08-06T20:05:48+00:00",
+          "retrieval_method": "rss"
+        },
+        {
+          "sport": "CBB",
+          "team": "BYU Cougars",
+          "event_type": "ROSTER",
+          "player_name": "Jaxon Kohler",
+          "excerpt": "The stars were finally aligning over Kevin Young and BYU basketball for a moment there. Having missed on countless centers throughout the offseason -- both in traditional recruiting, if such a thing even exists anymore, and through the transfer portal --",
+          "summary": "Judge's clarification means BYU basketball won't be signing center Jaxon Kohler.",
+          "source_url": "https://lawlessrepublic.com/feed/",
+          "blog_post_date": "2026-08-03",
+          "detected_at": "2026-08-06T20:05:48+00:00",
+          "retrieval_method": "rss"
+        },
+        {
+          "sport": "CBB",
+          "team": "BYU Cougars",
+          "event_type": "ROSTER",
+          "player_name": "Jakub Urbaniak",
+          "excerpt": "Urbaniak averaged 9.4 points and 6.0 rebounds per game last season at WKS Slask Wroclaw.",
+          "summary": "Jakub Urbaniak joins BYU men's basketball for the 2026-27 season.",
+          "source_url": "https://byucougars.com/rss",
+          "blog_post_date": "2026-08-06",
+          "detected_at": "2026-08-06T20:05:48+00:00",
+          "retrieval_method": "rss"
+        }
+      ],
+      "events_count": 3,
+      "token_usage": {
+        "agent_input_tokens": 39257,
+        "agent_output_tokens": 689,
+        "rss_input_tokens": 5140,
+        "rss_output_tokens": 546,
+        "web_input_tokens": 5915,
+        "web_output_tokens": 28
+      },
+      "web_searches": 4,
+      "web_fetches": 3,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 24.91,
+      "errors": []
+    },
+    {
+      "team": "Austin Peay Governors",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 34849,
+        "agent_output_tokens": 707,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 14846,
+        "web_output_tokens": 44
+      },
+      "web_searches": 3,
+      "web_fetches": 4,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 24.71,
+      "errors": []
+    },
+    {
+      "team": "Dartmouth Big Green",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 13773,
+        "agent_output_tokens": 404,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 0,
+        "web_output_tokens": 0
+      },
+      "web_searches": 3,
+      "web_fetches": 0,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 13.57,
+      "errors": []
+    },
+    {
+      "team": "Kentucky Wildcats",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "Kentucky Wildcats",
+          "event_type": "ROSTER",
+          "player_name": "Hall",
+          "excerpt": "Per Trilly . Pope down to Mitchell and Kohler after dropping Hall",
+          "summary": "Hall has been dropped from consideration, impacting roster composition.",
+          "source_url": "https://www.on3.com/boards/threads/pope-drops-hall.8920528/",
+          "blog_post_date": "2026-08-06",
+          "detected_at": "2026-08-06T20:07:07+00:00",
+          "retrieval_method": "rss"
+        }
+      ],
+      "events_count": 1,
+      "token_usage": {
+        "agent_input_tokens": 19545,
+        "agent_output_tokens": 357,
+        "rss_input_tokens": 4024,
+        "rss_output_tokens": 176,
+        "web_input_tokens": 1424,
+        "web_output_tokens": 12
+      },
+      "web_searches": 3,
+      "web_fetches": 1,
+      "rss_feeds_fetched": 7,
+      "latency_seconds": 10.44,
+      "errors": []
+    },
+    {
+      "team": "Long Island University Sharks",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 58399,
+        "agent_output_tokens": 481,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 1245,
+        "web_output_tokens": 12
+      },
+      "web_searches": 5,
+      "web_fetches": 1,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 30.61,
+      "errors": []
+    },
+    {
+      "team": "West Georgia Wolves",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "West Georgia Wolves",
+          "event_type": "ROSTER",
+          "player_name": "Marshal Destremau",
+          "excerpt": "West Georgia men's basketball head coach Dave Moore revealed that the Wolves picked up University of Texas Rio Grande Valley transfer Marshal Destremau in the latest round of 2026 signings.",
+          "summary": "West Georgia added transfer Marshal Destremau to the 2026-27 roster.",
+          "source_url": "https://uwgathletics.com/rss?path=mbball",
+          "blog_post_date": "2026-08-03",
+          "detected_at": "2026-08-06T20:07:57+00:00",
+          "retrieval_method": "rss"
+        },
+        {
+          "sport": "CBB",
+          "team": "West Georgia Wolves",
+          "event_type": "ROSTER",
+          "player_name": "Marshal Destremau",
+          "excerpt": "West Georgia men's basketball head coach Dave Moore revealed that the Wolves picked up University of Texas Rio Grande Valley transfer Marshal Destremau in the latest round of 2026 signings.",
+          "summary": "West Georgia added transfer Marshal Destremau to the 2026-27 roster.",
+          "source_url": "https://uwgathletics.com/rss?path=mbball",
+          "blog_post_date": "2026-08-03",
+          "detected_at": "2026-08-06T20:07:57+00:00",
+          "retrieval_method": "rss"
+        }
+      ],
+      "events_count": 2,
+      "token_usage": {
+        "agent_input_tokens": 31183,
+        "agent_output_tokens": 454,
+        "rss_input_tokens": 2204,
+        "rss_output_tokens": 376,
+        "web_input_tokens": 1660,
+        "web_output_tokens": 12
+      },
+      "web_searches": 3,
+      "web_fetches": 1,
+      "rss_feeds_fetched": 4,
+      "latency_seconds": 12.11,
+      "errors": []
+    },
+    {
+      "team": "Iowa State Cyclones",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "Iowa State Cyclones",
+          "event_type": "ROSTER",
+          "player_name": "Tamin Lipsey",
+          "excerpt": "The courts recently ruled that 2022 high school graduates are eligible to play a fifth year in the 2026-27 season. That criteria fits Cyclone legend Tamin Lipsey . Does that actually mean he\u2019ll come back to Iowa State?",
+          "summary": "Speculation about Tamin Lipsey potentially returning for a fifth year due to recent eligibility ruling.",
+          "source_url": "https://cyclonefanatic.com/forum/threads/daily-clone-will-tamin-lipsey-be-a-cyclone-next-year.299375/",
+          "blog_post_date": "2026-08-05",
+          "detected_at": "2026-08-06T20:08:15+00:00",
+          "retrieval_method": "rss"
+        },
+        {
+          "sport": "CBB",
+          "team": "Iowa State Cyclones",
+          "event_type": "ROSTER",
+          "player_name": "Tamin Lipsey",
+          "excerpt": "The courts recently ruled that 2022 high school graduates are eligible to play a fifth year in the 2026-27 season. That criteria fits Cyclone legend Tamin Lipsey. Does that actually mean he\u2019ll come back to Iowa State?",
+          "summary": "Potential return of Tamin Lipsey for a fifth year eligible per recent court ruling.",
+          "source_url": "https://cyclonefanatic.com/forum/threads/daily-clone-will-tamin-lipsey-be-a-cyclone-next-year.299375/",
+          "blog_post_date": "2026-08-05T12:05:18+00:00",
+          "detected_at": "2026-08-06T20:08:14+00:00",
+          "retrieval_method": "rss"
+        },
+        {
+          "sport": "CBB",
+          "team": "Iowa State Cyclones",
+          "event_type": "INJURY",
+          "player_name": "Christian Wiggins",
+          "excerpt": "Iowa State's freshman class, which dropped from four to three with the springtime departure of Jackson Kiss to UNLV, suffered its biggest hit to date with Christian Wiggins' Achilles' injury which will cost him the 2026-27 season.",
+          "summary": "Freshman Christian Wiggins will miss the entire 2026-27 season due to an Achilles injury.",
+          "source_url": "https://www.on3.com/sites/cyclone-report/news/iowa-state-overhauled-its-roster-and-staff-this-offseason-and-otzelberger-likes-what-he-sees/",
+          "blog_post_date": "2026-07-17",
+          "detected_at": "2026-08-06T20:08:23+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        },
+        {
+          "sport": "CBB",
+          "team": "Iowa State Cyclones",
+          "event_type": "ROSTER",
+          "player_name": "Jackson Kiss",
+          "excerpt": "Iowa State's freshman class, which dropped from four to three with the springtime departure of Jackson Kiss to UNLV, suffered its biggest hit to date with Christian Wiggins' Achilles' injury which will cost him the 2026-27 season.",
+          "summary": "Freshman Jackson Kiss departed the program for UNLV during the spring.",
+          "source_url": "https://www.on3.com/sites/cyclone-report/news/iowa-state-overhauled-its-roster-and-staff-this-offseason-and-otzelberger-likes-what-he-sees/",
+          "blog_post_date": "2026-07-17",
+          "detected_at": "2026-08-06T20:08:23+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        }
+      ],
+      "events_count": 4,
+      "token_usage": {
+        "agent_input_tokens": 43587,
+        "agent_output_tokens": 787,
+        "rss_input_tokens": 6478,
+        "rss_output_tokens": 458,
+        "web_input_tokens": 2883,
+        "web_output_tokens": 449
+      },
+      "web_searches": 3,
+      "web_fetches": 1,
+      "rss_feeds_fetched": 3,
+      "latency_seconds": 27.91,
+      "errors": []
+    },
+    {
+      "team": "Texas A&M Aggies",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 162053,
+        "agent_output_tokens": 1833,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 15953,
+        "web_output_tokens": 76
+      },
+      "web_searches": 8,
+      "web_fetches": 9,
+      "rss_feeds_fetched": 0,
+      "latency_seconds": 57.39,
+      "errors": []
+    },
+    {
+      "team": "LSU Tigers",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "LSU Tigers",
+          "event_type": "ROSTER",
+          "player_name": "Robert Miller",
+          "excerpt": "Former LSU Tigers forward Robert Miller has committed to Miami through the transfer portal. Miller became a reliable contributor for the Tigers, carving out a consistent role in LSU's front court despite not being a full-time starter.",
+          "summary": "LSU forward Robert Miller has transferred to Miami, removing a key rotation player from the Tigers' front court.",
+          "source_url": "https://www.andthevalleyshook.com/lsu-mens-basketball/51247/lsu-forward-robert-miller-transfers-to-miami",
+          "blog_post_date": "2026-08-04",
+          "detected_at": "2026-08-06T20:10:07+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        }
+      ],
+      "events_count": 1,
+      "token_usage": {
+        "agent_input_tokens": 72061,
+        "agent_output_tokens": 1372,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 38291,
+        "web_output_tokens": 275
+      },
+      "web_searches": 5,
+      "web_fetches": 7,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 37.16,
+      "errors": []
+    },
+    {
+      "team": "UAB Blazers",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 37355,
+        "agent_output_tokens": 850,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 22350,
+        "web_output_tokens": 36
+      },
+      "web_searches": 4,
+      "web_fetches": 5,
+      "rss_feeds_fetched": 0,
+      "latency_seconds": 42.9,
+      "errors": []
+    },
+    {
+      "team": "Mount St. Mary's Mountaineers",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 15162,
+        "agent_output_tokens": 375,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 0,
+        "web_output_tokens": 0
+      },
+      "web_searches": 3,
+      "web_fetches": 0,
+      "rss_feeds_fetched": 3,
+      "latency_seconds": 6.66,
+      "errors": []
+    }
+  ],
+  "totals": {
+    "events": 12,
+    "web_searches": 75,
+    "input_tokens": 1084299,
+    "output_tokens": 16908,
+    "cost_usd": 2.0384
+  }
+}

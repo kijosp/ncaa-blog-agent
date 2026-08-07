@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import sys
@@ -142,10 +143,18 @@ async def run_evaluation(
     Returns:
         Full evaluation result dict.
     """
+    # Reset the MCP gateway client at the start of each experiment
+    # to ensure a fresh connection and token.
+    from blog_search_agent import _reset_gateway_client
+    _reset_gateway_client()
+
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     team_results = []
 
-    for team in teams:
+    for i, team in enumerate(teams):
+        # Small delay between teams to avoid gateway connection/rate-limit issues
+        if i > 0:
+            await asyncio.sleep(5)
         print(f"  Running: {team} with {model_config['label']}...")
         result = await run_single_team(
             team, model_config, lookback_hours, reference_date

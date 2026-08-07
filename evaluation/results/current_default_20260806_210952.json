@@ -1,0 +1,747 @@
+{
+  "run_id": "sonnet_4.6_+_nova_lite_+_haiku_4.5_20260806_210952",
+  "timestamp": "20260806_210952",
+  "model_config": {
+    "label": "Sonnet 4.6 + Nova Lite + Haiku 4.5",
+    "model_id": "us.anthropic.claude-sonnet-4-6",
+    "rss_model_id": "us.amazon.nova-2-lite-v1:0",
+    "web_model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+  },
+  "teams": [
+    "Eastern Michigan Eagles",
+    "Auburn Tigers",
+    "Missouri Tigers",
+    "Maine Black Bears",
+    "La Salle Explorers",
+    "George Washington Revolutionaries",
+    "Duke Blue Devils",
+    "Columbia Lions",
+    "Texas Longhorns",
+    "BYU Cougars",
+    "Austin Peay Governors",
+    "Dartmouth Big Green",
+    "Kentucky Wildcats",
+    "Long Island University Sharks",
+    "West Georgia Wolves",
+    "Iowa State Cyclones",
+    "Texas A&M Aggies",
+    "LSU Tigers",
+    "UAB Blazers",
+    "Mount St. Mary's Mountaineers"
+  ],
+  "lookback_hours": 168,
+  "reference_date": "",
+  "team_results": [
+    {
+      "team": "Eastern Michigan Eagles",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 46259,
+        "agent_output_tokens": 1643,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 51744,
+        "web_output_tokens": 1038
+      },
+      "web_searches": 2,
+      "web_fetches": 5,
+      "rss_feeds_fetched": 0,
+      "latency_seconds": 32.63,
+      "errors": []
+    },
+    {
+      "team": "Auburn Tigers",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 42548,
+        "agent_output_tokens": 1741,
+        "rss_input_tokens": 4522,
+        "rss_output_tokens": 28,
+        "web_input_tokens": 17115,
+        "web_output_tokens": 330
+      },
+      "web_searches": 5,
+      "web_fetches": 5,
+      "rss_feeds_fetched": 3,
+      "latency_seconds": 29.88,
+      "errors": []
+    },
+    {
+      "team": "Missouri Tigers",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 43986,
+        "agent_output_tokens": 1491,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 13331,
+        "web_output_tokens": 436
+      },
+      "web_searches": 4,
+      "web_fetches": 4,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 27.31,
+      "errors": []
+    },
+    {
+      "team": "Maine Black Bears",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 30553,
+        "agent_output_tokens": 1101,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 15207,
+        "web_output_tokens": 138
+      },
+      "web_searches": 4,
+      "web_fetches": 2,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 24.37,
+      "errors": []
+    },
+    {
+      "team": "La Salle Explorers",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 77159,
+        "agent_output_tokens": 2761,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 25100,
+        "web_output_tokens": 265
+      },
+      "web_searches": 6,
+      "web_fetches": 8,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 43.97,
+      "errors": []
+    },
+    {
+      "team": "George Washington Revolutionaries",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 27100,
+        "agent_output_tokens": 1384,
+        "rss_input_tokens": 1092,
+        "rss_output_tokens": 14,
+        "web_input_tokens": 36434,
+        "web_output_tokens": 904
+      },
+      "web_searches": 2,
+      "web_fetches": 4,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 26.48,
+      "errors": []
+    },
+    {
+      "team": "Duke Blue Devils",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "Duke Blue Devils",
+          "event_type": "CANCELLATION",
+          "player_name": null,
+          "excerpt": "The Blue Devils were originally slated to face three of last season's Final Four clubs, but their date with Michigan was canceled due to ongoing media rights disputes.",
+          "summary": "Duke's scheduled game against Michigan was cancelled due to media rights disputes.",
+          "source_url": "https://www.si.com/college/duke/blue-devils-full-basketball-non-conference-schedule-after-harvard-addition",
+          "blog_post_date": null,
+          "detected_at": "2026-08-06T21:13:50+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        },
+        {
+          "sport": "CBB",
+          "team": "Duke Blue Devils",
+          "event_type": "INJURY",
+          "player_name": "Patrick Ngongba",
+          "excerpt": "Duke basketball rising sophomore and projected starter, Pat Ngongba II, was seen in a walking boot at practice via a social media post. This is very worrisome for Duke fans, as the 6'11 center has been dealing with a foot injury for over a year.",
+          "summary": "Projected starter Patrick Ngongba spotted in walking boot at practice, indicating ongoing foot injury concerns ahead of the season.",
+          "source_url": "https://balldurham.com/duke-blue-devils-news-basketball-to-host-multi-team-event-2026-recruiting-ngongba-injury-update-and-more-01jyfrvfazx3",
+          "blog_post_date": null,
+          "detected_at": "2026-08-06T21:13:50+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        },
+        {
+          "sport": "CBB",
+          "team": "Duke Blue Devils",
+          "event_type": "ROSTER",
+          "player_name": "Isaiah Evans",
+          "excerpt": "Isaiah Evans officially announced his decision to enter the NBA Draft.",
+          "summary": "Guard Isaiah Evans declared for the NBA Draft, removing him from Duke's roster.",
+          "source_url": "https://balldurham.com/who-s-leaving-and-who-s-joining-duke-basketball-s-2026-transfer-portal-tracker",
+          "blog_post_date": null,
+          "detected_at": "2026-08-06T21:14:08+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        },
+        {
+          "sport": "CBB",
+          "team": "Duke Blue Devils",
+          "event_type": "ROSTER",
+          "player_name": "Cameron Boozer",
+          "excerpt": "At long last, on the final day before the early entry deadline, National Player of the Year Cameron Boozer elected to enter the NBA Draft as expected.",
+          "summary": "Forward Cameron Boozer declared for the NBA Draft, removing him from Duke's roster.",
+          "source_url": "https://balldurham.com/who-s-leaving-and-who-s-joining-duke-basketball-s-2026-transfer-portal-tracker",
+          "blog_post_date": null,
+          "detected_at": "2026-08-06T21:14:08+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        },
+        {
+          "sport": "CBB",
+          "team": "Duke Blue Devils",
+          "event_type": "ROSTER",
+          "player_name": "Darren Harris",
+          "excerpt": "Sophomore guard Darren Harris made the expected decision to enter the Transfer Portal after a disappointing two seasons with Duke.",
+          "summary": "Guard Darren Harris entered the Transfer Portal and committed to Indiana.",
+          "source_url": "https://balldurham.com/who-s-leaving-and-who-s-joining-duke-basketball-s-2026-transfer-portal-tracker",
+          "blog_post_date": null,
+          "detected_at": "2026-08-06T21:14:08+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        },
+        {
+          "sport": "CBB",
+          "team": "Duke Blue Devils",
+          "event_type": "ROSTER",
+          "player_name": "Nikolas Khamenia",
+          "excerpt": "Nikolas Khamenia is a much bigger loss, and a surprising one to boot. Khamenia was a 5-star recruit in last year's recruiting class and was a rotational piece for the Blue Devils as a freshman, averaging nearly 20 minutes per game.",
+          "summary": "Guard Nikolas Khamenia entered the Transfer Portal and committed to UConn.",
+          "source_url": "https://balldurham.com/who-s-leaving-and-who-s-joining-duke-basketball-s-2026-transfer-portal-tracker",
+          "blog_post_date": null,
+          "detected_at": "2026-08-06T21:14:08+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        },
+        {
+          "sport": "CBB",
+          "team": "Duke Blue Devils",
+          "event_type": "ROSTER",
+          "player_name": "Drew Scharnowski",
+          "excerpt": "Duke's first addition in the Transfer Portal is a replacement for Maliq Brown. Belmont forward Drew Scharnowski won't be the singular defensive force that Brown was (no one is), but he'll bring versatility and a switchability to continue allowing Duke to be versatile and multiple on that end of the floor.",
+          "summary": "Forward Drew Scharnowski joined Duke from Belmont via the Transfer Portal.",
+          "source_url": "https://balldurham.com/who-s-leaving-and-who-s-joining-duke-basketball-s-2026-transfer-portal-tracker",
+          "blog_post_date": null,
+          "detected_at": "2026-08-06T21:14:08+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        },
+        {
+          "sport": "CBB",
+          "team": "Duke Blue Devils",
+          "event_type": "ROSTER",
+          "player_name": "John Blackwell",
+          "excerpt": "Duke's second addition was the big fish that Scheyer had been working to reel in since the portal opened. Wisconsin guard John Blackwell, who averaged 19 points per game and shot 39% from three this year for the Badgers, joins Duke and immediately elevates the Blue Devils' backcourt to championship form.",
+          "summary": "Guard John Blackwell joined Duke from Wisconsin via the Transfer Portal.",
+          "source_url": "https://balldurham.com/who-s-leaving-and-who-s-joining-duke-basketball-s-2026-transfer-portal-tracker",
+          "blog_post_date": null,
+          "detected_at": "2026-08-06T21:14:08+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        },
+        {
+          "sport": "CBB",
+          "team": "Duke Blue Devils",
+          "event_type": "ROSTER",
+          "player_name": "Jacob Theodosiou",
+          "excerpt": "Duke's third addition in the portal was a veteran depth piece for the backcourt in Jacob Theodosiou from Loyola. He averaged over 13 points per game in each of the past two seasons.",
+          "summary": "Guard Jacob Theodosiou joined Duke from Loyola via the Transfer Portal.",
+          "source_url": "https://balldurham.com/who-s-leaving-and-who-s-joining-duke-basketball-s-2026-transfer-portal-tracker",
+          "blog_post_date": null,
+          "detected_at": "2026-08-06T21:14:08+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        }
+      ],
+      "events_count": 9,
+      "token_usage": {
+        "agent_input_tokens": 86558,
+        "agent_output_tokens": 5130,
+        "rss_input_tokens": 3958,
+        "rss_output_tokens": 14,
+        "web_input_tokens": 61366,
+        "web_output_tokens": 3096
+      },
+      "web_searches": 5,
+      "web_fetches": 10,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 74.39,
+      "errors": []
+    },
+    {
+      "team": "Columbia Lions",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 25428,
+        "agent_output_tokens": 973,
+        "rss_input_tokens": 1095,
+        "rss_output_tokens": 14,
+        "web_input_tokens": 2336,
+        "web_output_tokens": 34
+      },
+      "web_searches": 3,
+      "web_fetches": 2,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 18.18,
+      "errors": []
+    },
+    {
+      "team": "Texas Longhorns",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "Texas Longhorns",
+          "event_type": "ROSTER",
+          "player_name": "Chendall Weaver",
+          "excerpt": "The former UT guard, who won an extra year of eligibility in a lawsuit against the NCAA last week, has committed to Houston, according to On3's Joe Tipton.",
+          "summary": "Chendall Weaver, Texas guard, transferred to Houston after winning an extra year of eligibility, reducing Texas roster depth.",
+          "source_url": "https://www.on3.com/news/texas-transfer-chendall-weaver-commits-to-houston-after-winning-extra-year-of-eligibility/",
+          "blog_post_date": "2026-08-06",
+          "detected_at": "2026-08-06T21:15:26+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        }
+      ],
+      "events_count": 1,
+      "token_usage": {
+        "agent_input_tokens": 52972,
+        "agent_output_tokens": 2061,
+        "rss_input_tokens": 1072,
+        "rss_output_tokens": 14,
+        "web_input_tokens": 10336,
+        "web_output_tokens": 312
+      },
+      "web_searches": 4,
+      "web_fetches": 5,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 32.82,
+      "errors": []
+    },
+    {
+      "team": "BYU Cougars",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "BYU Cougars",
+          "event_type": "ROSTER",
+          "player_name": "Richie Saunders",
+          "excerpt": "BYU star Richie Saunders has been named as one of the primary players to watch as a college basketball returner, now that he and his fellow seniors have been granted a fifth year of eligibility, if they feel so inclined to accept it.",
+          "summary": "BYU star Richie Saunders may not play for Kentucky this season and probably not BYU either due to eligibility considerations.",
+          "source_url": "https://lawlessrepublic.com/feed/",
+          "blog_post_date": "2026-08-03",
+          "detected_at": "2026-08-06T21:15:47+00:00",
+          "retrieval_method": "rss"
+        },
+        {
+          "sport": "CBB",
+          "team": "BYU Cougars",
+          "event_type": "ROSTER",
+          "player_name": "Jaxon Kohler",
+          "excerpt": "The stars were finally aligning over Kevin Young and BYU basketball for a moment there. Having missed on countless centers throughout the offseason -- both in traditional recruiting, if such a thing even exists anymore, and through the transfer portal --",
+          "summary": "Judge's clarification means BYU basketball won't be signing center Jaxon Kohler.",
+          "source_url": "https://lawlessrepublic.com/feed/",
+          "blog_post_date": "2026-08-03",
+          "detected_at": "2026-08-06T21:15:47+00:00",
+          "retrieval_method": "rss"
+        },
+        {
+          "sport": "CBB",
+          "team": "BYU Cougars",
+          "event_type": "ROSTER",
+          "player_name": "Jakub Urbaniak",
+          "excerpt": "Urbaniak averaged 9.4 points and 6.0 rebounds per game last season at WKS Slask Wroclaw.",
+          "summary": "Jakub Urbaniak has signed with BYU men's basketball for the 2026-27 campaign.",
+          "source_url": "https://byucougars.com/rss",
+          "blog_post_date": "2026-08-06",
+          "detected_at": "2026-08-06T21:15:47+00:00",
+          "retrieval_method": "rss"
+        },
+        {
+          "sport": "CBB",
+          "team": "BYU Cougars",
+          "event_type": "ROSTER",
+          "player_name": "Keba Keita",
+          "excerpt": "This ruling opens the door for former BYU center Keba Keita to potentially return to the team. Keita, who started 68 games over two seasons, is currently signed to an Exhibit-10 contract with the Indiana Pacers.",
+          "summary": "Former BYU center Keba Keita regains NCAA eligibility and could return to the Cougars for the 2026-27 season.",
+          "source_url": "https://byucougarswire.usatoday.com/story/sports/college/cougars/mens-basketball/2026/08/01/byu-mens-basketball-keba-keita-return-ncaa-eligibility/91137229007/",
+          "blog_post_date": "2026-08-01",
+          "detected_at": "2026-08-06T21:16:08+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        },
+        {
+          "sport": "CBB",
+          "team": "BYU Cougars",
+          "event_type": "ROSTER",
+          "player_name": "Jakub Urbaniak",
+          "excerpt": "Jakub Urbaniak is the newest member of the BYU men's basketball program, head coach Kevin Young announced on Thursday. The 6-foot-9 big man signs and joins the Cougars for the 2026-27 season after spending last season with WKS Slask Wroclaw.",
+          "summary": "BYU adds 6-foot-9 international forward Jakub Urbaniak to roster for 2026-27 season.",
+          "source_url": "https://byucougars.com/news/2026/08/6/jakub-urbaniak-signs-with-byu-mens-basketball",
+          "blog_post_date": "2026-08-06",
+          "detected_at": "2026-08-06T21:16:08+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        },
+        {
+          "sport": "CBB",
+          "team": "BYU Cougars",
+          "event_type": "ROSTER",
+          "player_name": "Jakub Urbaniak",
+          "excerpt": "BYU has officially secured its latest commitment, officially announcing the signing of Polish center Jakub Urbaniak on Thursday morning.",
+          "summary": "BYU officially signed Polish center Jakub Urbaniak, adding a 6-foot-9 big man with professional and international experience.",
+          "source_url": "https://www.deseret.com/sports/2026/08/06/byu-basketball-officially-announces-jakub-urbaniak-signing/",
+          "blog_post_date": "2026-08-06",
+          "detected_at": "2026-08-06T21:16:08+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        }
+      ],
+      "events_count": 6,
+      "token_usage": {
+        "agent_input_tokens": 44810,
+        "agent_output_tokens": 2383,
+        "rss_input_tokens": 5142,
+        "rss_output_tokens": 548,
+        "web_input_tokens": 8943,
+        "web_output_tokens": 864
+      },
+      "web_searches": 4,
+      "web_fetches": 4,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 32.93,
+      "errors": []
+    },
+    {
+      "team": "Austin Peay Governors",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 32314,
+        "agent_output_tokens": 1242,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 14821,
+        "web_output_tokens": 334
+      },
+      "web_searches": 3,
+      "web_fetches": 3,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 25.47,
+      "errors": []
+    },
+    {
+      "team": "Dartmouth Big Green",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 33998,
+        "agent_output_tokens": 963,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 20843,
+        "web_output_tokens": 113
+      },
+      "web_searches": 3,
+      "web_fetches": 2,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 23.0,
+      "errors": []
+    },
+    {
+      "team": "Kentucky Wildcats",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "Kentucky Wildcats",
+          "event_type": "ROSTER",
+          "player_name": "Hall",
+          "excerpt": "Per Trilly . Pope down to Mitchell and Kohler after dropping Hall",
+          "summary": "Coach Pope has dropped Keyshawn Hall from consideration, impacting the roster.",
+          "source_url": "https://www.on3.com/boards/threads/pope-drops-hall.8920528/",
+          "blog_post_date": "2026-08-06",
+          "detected_at": "2026-08-06T21:17:24+00:00",
+          "retrieval_method": "rss"
+        },
+        {
+          "sport": "CBB",
+          "team": "Kentucky Wildcats",
+          "event_type": "INJURY",
+          "player_name": "Kam Williams",
+          "excerpt": "Kam Williams expects to be on the court for the start of the 2026-27 season",
+          "summary": "Kam Williams injury update indicating he is expected to return for the 2026-27 season start.",
+          "source_url": "https://www.aseaofblue.com/kentucky-wildcats-basketball-injuries",
+          "blog_post_date": "2026-07-31",
+          "detected_at": "2026-08-06T21:17:47+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        },
+        {
+          "sport": "CBB",
+          "team": "Kentucky Wildcats",
+          "event_type": "ROSTER",
+          "player_name": "Jaxon Kohler",
+          "excerpt": "Jon Rothstein reported this evening that the Wildcats have reached out to former Michigan State Spartan Jaxon Kohler. The 6'10 forward had 20 points and five boards when the Spartans took on the Wildcats last season.",
+          "summary": "Kentucky is pursuing transfer portal target Jaxon Kohler, a 6'10 forward from Michigan State, as a potential roster addition.",
+          "source_url": "https://www.si.com/college/kentucky/men-s-basketball/mark-pope-and-kentucky-are-after-a-former-michigan-state-superstar-in-the-transfer-portal",
+          "blog_post_date": "2026-08-01",
+          "detected_at": "2026-08-06T21:18:09+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        },
+        {
+          "sport": "CBB",
+          "team": "Kentucky Wildcats",
+          "event_type": "ROSTER",
+          "player_name": "Ousmane N'Diaye",
+          "excerpt": "Kentucky was one of those schools, and soon N'Diaye was on FaceTime with UK head coach Mark Pope. After reflecting on things, N'Diaye made the choice to join the college ranks and become an intriguing international addition to Kentucky's 2026-27 roster.",
+          "summary": "Ousmane N'Diaye, a 7-foot forward from Senegal, has joined Kentucky's roster for the 2026-27 season after playing professionally in Europe.",
+          "source_url": "https://sports.yahoo.com/articles/uk-forward-college-basketball-adjustment-100000236.html",
+          "blog_post_date": "2026-08-06",
+          "detected_at": "2026-08-06T21:18:09+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        },
+        {
+          "sport": "CBB",
+          "team": "Kentucky Wildcats",
+          "event_type": "ROSTER",
+          "player_name": null,
+          "excerpt": "Kentucky's pursuit of a 15th roster spot is the biggest storyline of the offseason \u2014 an unexpected one for early August, thanks to absolute chaos in the world of college sports with 5th year options becoming available at the 11th hour.",
+          "summary": "Kentucky is actively pursuing a 15th roster spot through transfer portal acquisitions of 5th-year eligible players.",
+          "source_url": "https://www.on3.com/sites/kentucky-wildcats/news/sources-say-goes-live-to-talk-kentuckys-push-for-a-15th-player/",
+          "blog_post_date": "2026-08-05",
+          "detected_at": "2026-08-06T21:18:09+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        }
+      ],
+      "events_count": 5,
+      "token_usage": {
+        "agent_input_tokens": 62903,
+        "agent_output_tokens": 4365,
+        "rss_input_tokens": 4158,
+        "rss_output_tokens": 180,
+        "web_input_tokens": 45395,
+        "web_output_tokens": 1522
+      },
+      "web_searches": 4,
+      "web_fetches": 11,
+      "rss_feeds_fetched": 7,
+      "latency_seconds": 61.02,
+      "errors": []
+    },
+    {
+      "team": "Long Island University Sharks",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 55072,
+        "agent_output_tokens": 1077,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 1691,
+        "web_output_tokens": 17
+      },
+      "web_searches": 5,
+      "web_fetches": 2,
+      "rss_feeds_fetched": 2,
+      "latency_seconds": 20.12,
+      "errors": []
+    },
+    {
+      "team": "West Georgia Wolves",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "West Georgia Wolves",
+          "event_type": "ROSTER",
+          "player_name": "Marshal Destremau",
+          "excerpt": "West Georgia men's basketball head coach Dave Moore revealed that the Wolves picked up University of Texas Rio Grande Valley transfer Marshal Destremau in the latest round of 2026 signings.",
+          "summary": "West Georgia added transfer player Marshal Destremau to the 2026-27 roster.",
+          "source_url": "https://uwgathletics.com/rss?path=mbball",
+          "blog_post_date": "2026-08-03",
+          "detected_at": "2026-08-06T21:18:55+00:00",
+          "retrieval_method": "rss"
+        },
+        {
+          "sport": "CBB",
+          "team": "West Georgia Wolves",
+          "event_type": "ROSTER",
+          "player_name": "Marshal Destremau",
+          "excerpt": "West Georgia men's basketball head coach Dave Moore revealed that the Wolves picked up University of Texas Rio Grande Valley transfer Marshal Destremau in the latest round of 2026 signings.",
+          "summary": "West Georgia added transfer player Marshal Destremau to the 2026-27 roster.",
+          "source_url": "https://uwgathletics.com/rss?path=mbball",
+          "blog_post_date": "2026-08-03",
+          "detected_at": "2026-08-06T21:18:55+00:00",
+          "retrieval_method": "rss"
+        },
+        {
+          "sport": "CBB",
+          "team": "West Georgia Wolves",
+          "event_type": "ROSTER",
+          "player_name": "David Simon",
+          "excerpt": "University of West Georgia head men's basketball coach Dave Moore revealed on Friday that the Wolves signed University of Vermont transfer David Simon to compete for the Pack in 2026. Standing at 6-foot-11 and hailing from Windsor, Canada, Simon is a towering redshirt junior forward who brings three years of college experience to the Wolves' lineup.",
+          "summary": "West Georgia signed Vermont transfer David Simon, a 6'11\" redshirt junior forward, adding depth to the roster for the 2026-27 season.",
+          "source_url": "https://uwgathletics.com/story.aspx?file_date=7/28/2026&filename=mens-basketball-west-georgia-mens-basketball-signs-david-simon",
+          "blog_post_date": "2026-07-28",
+          "detected_at": "2026-08-06T21:19:09+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        }
+      ],
+      "events_count": 3,
+      "token_usage": {
+        "agent_input_tokens": 50516,
+        "agent_output_tokens": 1717,
+        "rss_input_tokens": 2204,
+        "rss_output_tokens": 378,
+        "web_input_tokens": 8233,
+        "web_output_tokens": 354
+      },
+      "web_searches": 3,
+      "web_fetches": 4,
+      "rss_feeds_fetched": 4,
+      "latency_seconds": 31.8,
+      "errors": []
+    },
+    {
+      "team": "Iowa State Cyclones",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "Iowa State Cyclones",
+          "event_type": "ROSTER",
+          "player_name": "Tamin Lipsey",
+          "excerpt": "The courts recently ruled that 2022 high school graduates are eligible to play a fifth year in the 2026-27 season. That criteria fits Cyclone legend Tamin Lipsey . Does that actually mean he\u2019ll come back to Iowa State?",
+          "summary": "Tamin Lipsey may return for a fifth year due to recent eligibility ruling.",
+          "source_url": "https://cyclonefanatic.com/forum/threads/daily-clone-will-tamin-lipsey-be-a-cyclone-next-year.299375/",
+          "blog_post_date": "2026-08-05T12:05:18+00:00",
+          "detected_at": "2026-08-06T21:19:31+00:00",
+          "retrieval_method": "rss"
+        },
+        {
+          "sport": "CBB",
+          "team": "Iowa State Cyclones",
+          "event_type": "ROSTER",
+          "player_name": "Tamin Lipsey",
+          "excerpt": "The courts recently ruled that 2022 high school graduates are eligible to play a fifth year in the 2026-27 season. That criteria fits Cyclone legend Tamin Lipsey . Does that actually mean he\u2019ll come back to Iowa State?",
+          "summary": "Tamin Lipsey, a Cyclone legend, may return for a fifth year due to recent eligibility rulings.",
+          "source_url": "https://cyclonefanatic.com/forum/threads/daily-clone-will-tamin-lipsey-be-a-cyclone-next-year.299375/",
+          "blog_post_date": "2026-08-05T12:05:18+00:00",
+          "detected_at": "2026-08-06T21:19:31+00:00",
+          "retrieval_method": "rss"
+        }
+      ],
+      "events_count": 2,
+      "token_usage": {
+        "agent_input_tokens": 75973,
+        "agent_output_tokens": 2777,
+        "rss_input_tokens": 6478,
+        "rss_output_tokens": 469,
+        "web_input_tokens": 35174,
+        "web_output_tokens": 961
+      },
+      "web_searches": 4,
+      "web_fetches": 8,
+      "rss_feeds_fetched": 3,
+      "latency_seconds": 54.0,
+      "errors": []
+    },
+    {
+      "team": "Texas A&M Aggies",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "Texas A&M Aggies",
+          "event_type": "ROSTER",
+          "player_name": "Cade Phillips",
+          "excerpt": "Phillips (shoulder) is apart of the starting five in Texas A&M's first exhibition game in the Bahamas on Monday. Phillips will return to action for the first time since December 6 after undergoing left shoulder surgery, which sidelined him for a majority of the 2025-26 season.",
+          "summary": "Cade Phillips returns to action in exhibition game after left shoulder surgery, available for 2026-27 season.",
+          "source_url": "https://www.foxsports.com/college-basketball/texas-am-aggies-team",
+          "blog_post_date": "2026-08-03",
+          "detected_at": "2026-08-06T21:20:59+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        }
+      ],
+      "events_count": 1,
+      "token_usage": {
+        "agent_input_tokens": 117462,
+        "agent_output_tokens": 3364,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 16631,
+        "web_output_tokens": 880
+      },
+      "web_searches": 8,
+      "web_fetches": 8,
+      "rss_feeds_fetched": 0,
+      "latency_seconds": 56.66,
+      "errors": []
+    },
+    {
+      "team": "LSU Tigers",
+      "events": [
+        {
+          "sport": "CBB",
+          "team": "LSU Tigers",
+          "event_type": "ROSTER",
+          "player_name": "Yam Madar",
+          "excerpt": "Will Wade's roster is incomplete at the moment and needs some guards after Yam Madar decided to remain overseas to play professionally.",
+          "summary": "Guard Yam Madar has opted out of LSU basketball to play professionally overseas, creating a roster gap.",
+          "source_url": "https://www.louisianasports.net/2026/08/01/ncaa-injunction-creates-options-for-wade-lsu/lsu-sports/",
+          "blog_post_date": "2026-08-01",
+          "detected_at": "2026-08-06T21:21:51+00:00",
+          "retrieval_method": "web_search + web_fetch"
+        }
+      ],
+      "events_count": 1,
+      "token_usage": {
+        "agent_input_tokens": 99576,
+        "agent_output_tokens": 2648,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 33759,
+        "web_output_tokens": 717
+      },
+      "web_searches": 5,
+      "web_fetches": 7,
+      "rss_feeds_fetched": 1,
+      "latency_seconds": 42.06,
+      "errors": []
+    },
+    {
+      "team": "UAB Blazers",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 78975,
+        "agent_output_tokens": 2336,
+        "rss_input_tokens": 0,
+        "rss_output_tokens": 0,
+        "web_input_tokens": 33582,
+        "web_output_tokens": 578
+      },
+      "web_searches": 5,
+      "web_fetches": 7,
+      "rss_feeds_fetched": 0,
+      "latency_seconds": 43.89,
+      "errors": []
+    },
+    {
+      "team": "Mount St. Mary's Mountaineers",
+      "events": [],
+      "events_count": 0,
+      "token_usage": {
+        "agent_input_tokens": 35612,
+        "agent_output_tokens": 1148,
+        "rss_input_tokens": 1133,
+        "rss_output_tokens": 14,
+        "web_input_tokens": 18357,
+        "web_output_tokens": 144
+      },
+      "web_searches": 3,
+      "web_fetches": 3,
+      "rss_feeds_fetched": 3,
+      "latency_seconds": 21.09,
+      "errors": []
+    }
+  ],
+  "totals": {
+    "events": 28,
+    "web_searches": 82,
+    "input_tokens": 1621026,
+    "output_tokens": 57015,
+    "cost_usd": 5.5269
+  }
+}

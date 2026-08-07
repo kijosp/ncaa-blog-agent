@@ -120,11 +120,29 @@ def _get_m2m_token() -> str:
 
 
 _gateway_client: MCPClient | None = None
+_gateway_token: str | None = None
+
+
+def _reset_gateway_client() -> None:
+    """Force-reset the cached gateway client (call if connection breaks)."""
+    global _gateway_client, _gateway_token
+    if _gateway_client is not None:
+        try:
+            _gateway_client.stop()
+        except Exception:
+            pass
+    _gateway_client = None
+    _gateway_token = None
 
 
 def _get_gateway_mcp_client() -> MCPClient:
-    """Get or create the cached MCP client for the AgentCore Gateway."""
-    global _gateway_client
+    """Get or create the MCP client for the AgentCore Gateway.
+
+    Caches the client for reuse. If the client has been reset (via
+    _reset_gateway_client), creates a fresh one with a new token.
+    """
+    global _gateway_client, _gateway_token
+
     if _gateway_client is not None:
         return _gateway_client
 
@@ -132,14 +150,17 @@ def _get_gateway_mcp_client() -> MCPClient:
     if not gateway_url:
         raise ValueError("GATEWAY_URL environment variable is required")
 
-    gateway_token = os.environ.get("GATEWAY_TOKEN") or _get_m2m_token()
+    _gateway_token = os.environ.get("GATEWAY_TOKEN") or _get_m2m_token()
+    # Capture token in a local var so the lambda closure is stable
+    token = _gateway_token
 
     _gateway_client = MCPClient(
         lambda: streamablehttp_client(
             url=gateway_url,
-            headers={"Authorization": f"Bearer {gateway_token}"},
+            headers={"Authorization": f"Bearer {token}"},
         ),
         prefix="gateway",
+        startup_timeout=60,
     )
     return _gateway_client
 
@@ -700,7 +721,18 @@ async def run_blog_search_workflow(
 
     if non_rss_blogs:
         try:
-            agent = _create_workflow_agent(debug=debug, callback_handler=callback_handler)
+            # Attempt agent creation with one retry if MCP client fails
+            for attempt in range(2):
+                try:
+                    agent = _create_workflow_agent(debug=debug, callback_handler=callback_handler)
+                    break
+                except (ValueError, RuntimeError) as init_err:
+                    if attempt == 0:
+                        logger.warning("[WORKFLOW] MCP client init failed, retrying: %s", init_err)
+                        _reset_gateway_client()
+                    else:
+                        raise
+
             message = _build_non_rss_workflow_message(
                 non_rss_blogs, team, sport, events, datetime_start, datetime_end,
             )
@@ -715,7 +747,11 @@ async def run_blog_search_workflow(
             agent_output_tokens = usage.get("outputTokens", 0)
 
             tool_metrics = result.metrics.tool_metrics
-            search_metrics = tool_metrics.get("gateway__WebSearch")
+            # The gateway MCP tool name varies based on gateway config
+            # (e.g. "gateway_web-search-tool___WebSearch"), so find it by suffix.
+            search_metrics = next(
+                (v for k, v in tool_metrics.items() if "WebSearch" in k), None
+            )
             fetch_metrics = tool_metrics.get("web_fetch")
             web_searches_performed = search_metrics.call_count if search_metrics else 0
             web_fetches_performed = fetch_metrics.call_count if fetch_metrics else 0

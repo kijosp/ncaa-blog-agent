@@ -1,6 +1,6 @@
 """Bedrock model pricing constants (us-east-1, on-demand, per 1K tokens)."""
 
-WEB_SEARCH_COST_PER_QUERY = 0.007  # $7 per 1,000 queries
+WEB_SEARCH_COST_PER_QUERY = 0.012  # $12 per 1,000 queries
 
 # Source prices are per 1M tokens; divided by 1000 for per-1K rates.
 PRICING = {
@@ -30,11 +30,11 @@ MODEL_CONFIGS = {
         "rss_model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
         "web_model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
     },
-    "challenger_nova": {
-        "label": "Nova 2 Lite",
-        "model_id": "us.amazon.nova-2-lite-v1:0",
-        "rss_model_id": "us.amazon.nova-2-lite-v1:0",
-        "web_model_id": "us.amazon.nova-2-lite-v1:0",
+    "challenger_opus_haiku": {
+        "label": "Opus 4.6 + Haiku 4.5",
+        "model_id": "us.anthropic.claude-opus-4-6-v1",
+        "rss_model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+        "web_model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
     },
     "current_default": {
         "label": "Sonnet 4.6 + Nova Lite + Haiku 4.5",
